@@ -1,5 +1,7 @@
 *.elc
 *~
+\#*\#
+.\#*
 .claude/
 test-*.templ
 reference/

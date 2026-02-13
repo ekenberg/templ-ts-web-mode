@@ -17,5 +17,31 @@
 - [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
 
 ## Backlog
-- [ ] ~~Element insert (`web-mode-element-insert`)~~ MAYBE-LATER-OR-NOT — overlaps with auto-close + wrap
+
+### Navigation
+- [ ] Tag jumping — jump between opening/closing tag (like `web-mode-navigate`)
+- [ ] Next element (`web-mode-element-next`)
+- [ ] Previous element (`web-mode-element-previous`)
+
+### Selection
+- [ ] Select element content (`web-mode-element-content-select`)
+
+### Element operations
+- [ ] Element close (`web-mode-element-close`)
+- [ ] Element kill (`web-mode-element-kill`)
+- [ ] Element clone (`web-mode-element-clone`)
+- [ ] Element vanish (`web-mode-element-vanish`) — unwrap: remove tags, keep content
+
+### Editing convenience
+- [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)
+
+### Cross-cutting
+- [ ] Keybindings with web-mode-compatible defaults for implemented functions
+- [ ] Configuration via `defcustom` where it makes sense (e.g. auto-pairing, auto-quoting)
+
+### Investigation
+- [ ] Investigate script tags in templ — how they parse, how JS looks/behaves inside templ context
 - [ ] Indentation: uses tabs instead of spaces — investigate and fix
+
+### Doubtful
+- [ ] Element insert (`web-mode-element-insert`) — probably not; overlaps with auto-close + wrap
