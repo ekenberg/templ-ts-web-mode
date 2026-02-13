@@ -18,6 +18,7 @@
 ;; - Auto-close tags: typing `>' after `<div' inserts `</div>'
 ;; - Auto-complete closing tags: typing `</' completes the tag name
 ;; - Smart Enter: RET between `<div>|</div>' opens a new indented line
+;; - Element navigation: jump to beginning/end of enclosing element
 
 ;;; Code:
 
@@ -71,6 +72,14 @@ Returns the tag_start node or nil."
      ;; Walk up to find tag_start ancestor
      (t (when node
           (templ-ts-web--ancestor-of-type node "tag_start"))))))
+
+(defun templ-ts-web--enclosing-element (&optional pos)
+  "Return the innermost `element' or `self_closing_tag' node containing POS.
+POS defaults to point."
+  (when-let* ((node (treesit-node-at (or pos (point)) 'templ)))
+    (if (member (treesit-node-type node) '("element" "self_closing_tag"))
+        node
+      (templ-ts-web--ancestor-of-type node "element" "self_closing_tag"))))
 
 (defun templ-ts-web--find-unclosed-tag-name ()
   "Find the innermost unclosed tag name at point using text scanning.
@@ -208,6 +217,20 @@ Otherwise run the normal binding for RET."
         (indent-according-to-mode))
     ;; Not between tags — normal RET
     (newline-and-indent)))
+
+;;; Feature: element navigation
+
+(defun templ-ts-web-element-beginning ()
+  "Move point to the beginning of the enclosing HTML element."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (goto-char (treesit-node-start element))))
+
+(defun templ-ts-web-element-end ()
+  "Move point to the end of the enclosing HTML element."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (goto-char (treesit-node-end element))))
 
 ;;; Minor mode
 

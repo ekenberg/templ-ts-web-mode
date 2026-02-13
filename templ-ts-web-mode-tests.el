@@ -212,6 +212,52 @@ POINT-MARKER: if non-nil, `|' in content marks point."
       (should (string-match-p "<div>\n" content))
       (should (string-match-p "\n</div>" content)))))
 
+;;; Tests: element-beginning
+
+(ert-deftest ttwt-element-beginning-from-content ()
+  "Point in element content moves to the opening `<'."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-beginning)
+    (should (= (ttwt--point-in-content) 1))))
+
+(ert-deftest ttwt-element-beginning-from-close-tag ()
+  "Point inside the closing tag moves to the opening `<'."
+  (ttwt--with-templ "<div>hello</di|v>" t
+    (templ-ts-web-element-beginning)
+    (should (= (ttwt--point-in-content) 1))))
+
+(ert-deftest ttwt-element-beginning-from-open-tag ()
+  "Point inside the opening tag moves to the `<'."
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-element-beginning)
+    (should (= (ttwt--point-in-content) 1))))
+
+(ert-deftest ttwt-element-beginning-nested ()
+  "Point in inner element goes to inner element's beginning."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-beginning)
+    (should (= (ttwt--point-in-content) 6))))
+
+;;; Tests: element-end
+
+(ert-deftest ttwt-element-end-from-content ()
+  "Point in element content moves past the closing `>'."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-end)
+    (should (= (ttwt--point-in-content) 17))))
+
+(ert-deftest ttwt-element-end-from-open-tag ()
+  "Point in the opening tag moves past the closing `>'."
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-element-end)
+    (should (= (ttwt--point-in-content) 17))))
+
+(ert-deftest ttwt-element-end-nested ()
+  "Point in inner element goes to inner element's end."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-end)
+    (should (= (ttwt--point-in-content) 23))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()
