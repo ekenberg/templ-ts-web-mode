@@ -40,6 +40,7 @@ Returns the buffer (caller must kill it)."
         ;; Adjust pos for prefix.
         (setq pos (+ pos (length ttwt--wrapper-prefix)))
         (goto-char pos)
+        (transient-mark-mode 1)
         (treesit-parser-create 'templ)
         (setq-local treesit-language-at-point-function
                     (lambda (_pos) 'templ))
@@ -257,6 +258,44 @@ POINT-MARKER: if non-nil, `|' in content marks point."
   (ttwt--with-templ "<div><span>te|xt</span></div>" t
     (templ-ts-web-element-end)
     (should (= (ttwt--point-in-content) 23))))
+
+;;; Tests: element-select
+
+(ert-deftest ttwt-element-select-from-content ()
+  "Select element when point is in content."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-select)
+    (should (use-region-p))
+    (should (= (ttwt--point-in-content) 1))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 17))))
+
+(ert-deftest ttwt-element-select-from-open-tag ()
+  "Select element when point is in the opening tag."
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-element-select)
+    (should (use-region-p))
+    (should (= (ttwt--point-in-content) 1))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 17))))
+
+(ert-deftest ttwt-element-select-nested ()
+  "Select innermost element when nested."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-select)
+    (should (use-region-p))
+    (should (= (ttwt--point-in-content) 6))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 23))))
+
+(ert-deftest ttwt-element-select-expand-to-parent ()
+  "Repeated select expands to parent element."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-select)
+    ;; First call selects <span>
+    (should (= (ttwt--point-in-content) 6))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 23))
+    ;; Second call expands to <div>
+    (templ-ts-web-element-select)
+    (should (= (ttwt--point-in-content) 1))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 29))))
 
 ;;; Tests: void element list
 

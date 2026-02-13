@@ -10,10 +10,9 @@
 - [x] CLAUDE.md with project docs and test commands
 - [x] Element beginning (`web-mode-element-beginning`)
 - [x] Element end (`web-mode-element-end`)
+- [x] Element select (`web-mode-element-select`) — with expand-on-repeat
 
 ## Backlog
-
-- [ ] Element select (`web-mode-element-select`)
 - [ ] Element rename (`web-mode-element-rename`)
 - [ ] Element wrap (`web-mode-element-wrap`)
 - [ ] Element insert (`web-mode-element-insert`)

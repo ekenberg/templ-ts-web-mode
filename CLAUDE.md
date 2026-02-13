@@ -38,6 +38,8 @@ Or from within Emacs:
 
 **Always keep TODO.md in sync.** When completing a backlog item, move it to Completed. When adding new work, add it to Backlog. Do this in the same commit as the implementation.
 
+**Manual testing before finishing.** After implementing a feature and automated tests pass, always ask the user to manually test in Emacs before updating TODO.md or proposing a commit. Do not treat a feature as done until the user confirms it works.
+
 ## Code Style
 
 Write idiomatic, clear Emacs Lisp. Prefer `when`/`unless` over one-armed `if`, use `when-let*`/`if-let*` where appropriate, favor `pcase`/`cl-destructuring-bind` for structured data. Name functions and variables descriptively. Keep functions short and single-purpose.

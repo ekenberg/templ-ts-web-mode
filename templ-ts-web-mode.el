@@ -19,6 +19,7 @@
 ;; - Auto-complete closing tags: typing `</' completes the tag name
 ;; - Smart Enter: RET between `<div>|</div>' opens a new indented line
 ;; - Element navigation: jump to beginning/end of enclosing element
+;; - Element select: mark enclosing element, expand on repeat
 
 ;;; Code:
 
@@ -231,6 +232,20 @@ Otherwise run the normal binding for RET."
   (interactive)
   (when-let* ((element (templ-ts-web--enclosing-element)))
     (goto-char (treesit-node-end element))))
+
+(defun templ-ts-web-element-select ()
+  "Select the enclosing HTML element.
+On repeat, expand selection to the parent element."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    ;; If region already matches this element, expand to parent.
+    (when (and (use-region-p)
+               (= (region-beginning) (treesit-node-start element))
+               (= (region-end) (treesit-node-end element)))
+      (setq element (templ-ts-web--ancestor-of-type element "element")))
+    (when element
+      (push-mark (treesit-node-end element) nil t)
+      (goto-char (treesit-node-start element)))))
 
 ;;; Minor mode
 
