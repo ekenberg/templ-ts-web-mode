@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Emacs Lisp minor mode that adds web-mode-like editing conveniences (auto-close tags, closing tag completion, smart Enter) on top of templ-ts-mode. Uses tree-sitter for structural awareness of templ (Go templating language) files.
+Emacs Lisp minor mode that ports selected web-mode features — piece by piece — to work on top of templ-ts-mode. Uses tree-sitter for structural awareness of templ (Go templating language) files. Feature set is driven by actual editing needs, not by completeness — we cherry-pick the good stuff from web-mode, not replicate it wholesale.
 
 ## Development Commands
 
