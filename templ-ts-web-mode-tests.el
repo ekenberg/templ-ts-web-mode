@@ -372,6 +372,49 @@ POINT-MARKER: if non-nil, `|' in content marks point."
       ;; The outer div should remain unwrapped
       (should (string-match-p "\\`<div>" content)))))
 
+;;; Tests: data-* attribute fontification
+
+(defmacro ttwt--with-fontified-templ (content &rest body)
+  "Execute BODY in a fontified templ buffer with CONTENT."
+  (declare (indent 1))
+  `(let ((buf (ttwt--templ-buffer ,content nil)))
+     (unwind-protect
+         (with-current-buffer buf
+           (setq-local font-lock-defaults '(nil t))
+           (setq-local font-lock-fontify-region-function
+                       #'treesit-font-lock-fontify-region)
+           (font-lock-mode 1)
+           (font-lock-ensure)
+           ,@body)
+       (kill-buffer buf))))
+
+(defun ttwt--face-at (content-offset)
+  "Return the face text property at CONTENT-OFFSET (1-based in content)."
+  (get-text-property (+ (length ttwt--wrapper-prefix) content-offset) 'face))
+
+(ert-deftest ttwt-fontify-data-attr ()
+  "data-* attribute names get `templ-ts-web-data-attr-face'."
+  ;; <div data-testid="main">x</div>
+  ;;      ^pos 6
+  (ttwt--with-fontified-templ "<div data-testid=\"main\">x</div>"
+    (should (eq (ttwt--face-at 6) 'templ-ts-web-data-attr-face))))
+
+(ert-deftest ttwt-fontify-regular-attr-no-data-face ()
+  "Regular attribute names do NOT get `templ-ts-web-data-attr-face'."
+  ;; <div class="foo" data-x="y">x</div>
+  ;;      ^pos 6        ^pos 18
+  (ttwt--with-fontified-templ "<div class=\"foo\" data-x=\"y\">x</div>"
+    (should-not (eq (ttwt--face-at 6) 'templ-ts-web-data-attr-face))
+    (should (eq (ttwt--face-at 18) 'templ-ts-web-data-attr-face))))
+
+(ert-deftest ttwt-fontify-multiple-data-attrs ()
+  "Multiple data-* attributes on the same element all get the face."
+  ;; <div data-a="1" data-b="2">x</div>
+  ;;      ^pos 6       ^pos 17
+  (ttwt--with-fontified-templ "<div data-a=\"1\" data-b=\"2\">x</div>"
+    (should (eq (ttwt--face-at 6) 'templ-ts-web-data-attr-face))
+    (should (eq (ttwt--face-at 17) 'templ-ts-web-data-attr-face))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()

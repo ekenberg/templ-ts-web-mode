@@ -41,6 +41,13 @@
     "link" "meta" "source" "track" "wbr")
   "HTML void elements that must not have a closing tag.")
 
+(defface templ-ts-web-data-attr-face
+  '((t :inherit font-lock-builtin-face))
+  "Face for `data-*' attribute names in templ HTML.
+Customize to taste — the intent is to visually distinguish data
+attributes from regular HTML attributes."
+  :group 'templ-ts-web)
+
 (defcustom templ-ts-web-tag-list
   '("a" "abbr" "address" "area" "article" "aside" "audio" "b"
     "base" "bdi" "bdo" "blockquote" "body" "br" "button" "canvas"
@@ -361,6 +368,42 @@ wrapping a whole element; inline-wraps otherwise."
             (indent-region beg (+ end (length open-tag) (length close-tag) 2)))
           (goto-char beg))))))
 
+;;; Feature: data-* attribute fontification
+
+(defun templ-ts-web--install-data-attr-fontification ()
+  "Add tree-sitter font-lock rules for `data-*' attribute names.
+Idempotent — removes any existing data-attr rules before appending."
+  ;; Remove stale data-attr entries (idempotent reinstall).
+  (setq treesit-font-lock-settings
+        (append (seq-remove (lambda (entry) (eq (nth 2 entry) 'data-attr))
+                            (or treesit-font-lock-settings '()))
+                (treesit-font-lock-rules
+                 :language 'templ
+                 :feature 'data-attr
+                 :override t
+                 '(((attribute_name) @templ-ts-web-data-attr-face
+                    (:match "\\`data-" @templ-ts-web-data-attr-face))))))
+  ;; Add feature to level 1 if not already present.
+  (unless (seq-some (lambda (level) (memq 'data-attr level))
+                    treesit-font-lock-feature-list)
+    (if treesit-font-lock-feature-list
+        (setf (car treesit-font-lock-feature-list)
+              (append (car treesit-font-lock-feature-list) '(data-attr)))
+      (setq treesit-font-lock-feature-list '((data-attr)))))
+  (treesit-font-lock-recompute-features)
+  (font-lock-flush))
+
+(defun templ-ts-web--remove-data-attr-fontification ()
+  "Remove tree-sitter font-lock rules for `data-*' attribute names."
+  (setq treesit-font-lock-settings
+        (seq-remove (lambda (entry) (eq (nth 2 entry) 'data-attr))
+                    (or treesit-font-lock-settings '())))
+  (setq treesit-font-lock-feature-list
+        (mapcar (lambda (level) (remq 'data-attr level))
+                treesit-font-lock-feature-list))
+  (treesit-font-lock-recompute-features)
+  (font-lock-flush))
+
 ;;; Minor mode
 
 (defvar templ-ts-web-mode-map
@@ -380,9 +423,11 @@ on top of a templ tree-sitter major mode."
   (if templ-ts-web-mode
       (progn
         (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle nil t)
-        (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash nil t))
+        (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash nil t)
+        (templ-ts-web--install-data-attr-fontification))
     (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle t)
-    (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash t)))
+    (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash t)
+    (templ-ts-web--remove-data-attr-fontification)))
 
 (provide 'templ-ts-web-mode)
 
