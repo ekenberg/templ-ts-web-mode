@@ -293,6 +293,22 @@ Otherwise run the normal binding for RET."
   (when-let* ((element (templ-ts-web--enclosing-element)))
     (goto-char (treesit-node-end element))))
 
+(defun templ-ts-web-element-navigate ()
+  "Jump between matching open and close tags of the enclosing element.
+If point is within the closing tag, jump to the opening `<'.
+Otherwise jump to the closing tag's `<'.
+No-op on self-closing tags."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (when (equal (treesit-node-type element) "element")
+      (let ((tag-start (treesit-search-subtree element "^tag_start$" nil nil 1))
+            (tag-end (treesit-search-subtree element "^tag_end$" nil nil 1)))
+        (when (and tag-start tag-end)
+          (if (and (<= (treesit-node-start tag-end) (point))
+                   (<= (point) (treesit-node-end tag-end)))
+              (goto-char (treesit-node-start tag-start))
+            (goto-char (treesit-node-start tag-end))))))))
+
 (defun templ-ts-web-element-select ()
   "Select the enclosing HTML element.
 On repeat, expand selection to the parent element."

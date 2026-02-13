@@ -15,11 +15,11 @@
 - [x] Element wrap (`web-mode-element-wrap`) — block-wrap with indent or inline
 
 - [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
+- [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
 
 ## Backlog
 
 ### Navigation
-- [ ] Tag jumping — jump between opening/closing tag (like `web-mode-navigate`)
 - [ ] Next element (`web-mode-element-next`)
 - [ ] Previous element (`web-mode-element-previous`)
 

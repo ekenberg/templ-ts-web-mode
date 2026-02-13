@@ -213,6 +213,53 @@ POINT-MARKER: if non-nil, `|' in content marks point."
       (should (string-match-p "<div>\n" content))
       (should (string-match-p "\n</div>" content)))))
 
+;;; Tests: element-navigate (tag jumping)
+
+(ert-deftest ttwt-navigate-from-content-to-close ()
+  "From content, jump to the closing tag's `<'."
+  ;; <div>hel|lo</div>
+  ;; 1234567890123456
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 11))))
+
+(ert-deftest ttwt-navigate-from-open-to-close ()
+  "From the opening tag, jump to the closing tag's `<'."
+  ;; <di|v>hello</div>
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 11))))
+
+(ert-deftest ttwt-navigate-from-close-to-open ()
+  "From the closing tag, jump to the opening tag's `<'."
+  ;; <div>hello</di|v>
+  (ttwt--with-templ "<div>hello</di|v>" t
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 1))))
+
+(ert-deftest ttwt-navigate-nested ()
+  "Navigate targets the innermost element."
+  ;; <div><span>te|xt</span></div>
+  ;;      ^6          ^16
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 16))))
+
+(ert-deftest ttwt-navigate-self-closing-noop ()
+  "Navigate on a self-closing tag is a no-op."
+  (ttwt--with-templ "<br />|" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-navigate)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-navigate-roundtrip ()
+  "Two navigations return to the opening tag."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 11))
+    (templ-ts-web-element-navigate)
+    (should (= (ttwt--point-in-content) 1))))
+
 ;;; Tests: element-beginning
 
 (ert-deftest ttwt-element-beginning-from-content ()
