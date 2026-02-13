@@ -11,9 +11,9 @@
 - [x] Element beginning (`web-mode-element-beginning`)
 - [x] Element end (`web-mode-element-end`)
 - [x] Element select (`web-mode-element-select`) — with expand-on-repeat
+- [x] Element rename (`web-mode-element-rename`)
 
 ## Backlog
-- [ ] Element rename (`web-mode-element-rename`)
 - [ ] Element wrap (`web-mode-element-wrap`)
 - [ ] Element insert (`web-mode-element-insert`)
 - [ ] Fontify `data-*` attributes with a distinct face

@@ -20,6 +20,7 @@
 ;; - Smart Enter: RET between `<div>|</div>' opens a new indented line
 ;; - Element navigation: jump to beginning/end of enclosing element
 ;; - Element select: mark enclosing element, expand on repeat
+;; - Element rename: change tag name in both open and close tags
 
 ;;; Code:
 
@@ -56,6 +57,34 @@
   "Extract the tag name string from TAG-NODE (tag_start, tag_end, etc)."
   (when-let* ((name-node (treesit-node-child-by-field-name tag-node "name")))
     (treesit-node-text name-node t)))
+
+(defun templ-ts-web--element-tag-name (element)
+  "Return the tag name string from ELEMENT (element or self_closing_tag)."
+  (pcase (treesit-node-type element)
+    ("element"
+     (when-let* ((tag (treesit-search-subtree element "^tag_start$" nil nil 1)))
+       (templ-ts-web--tag-name tag)))
+    ("self_closing_tag"
+     (when-let* ((name (treesit-node-child-by-field-name element "name")))
+       (treesit-node-text name t)))))
+
+(defun templ-ts-web--element-name-nodes (element)
+  "Return name nodes for ELEMENT, ordered start-to-end.
+For an element, returns the name nodes from tag_start and tag_end.
+For a self_closing_tag, returns a single name node."
+  (pcase (treesit-node-type element)
+    ("element"
+     (let ((nodes nil))
+       (when-let* ((tag-start (treesit-search-subtree element "^tag_start$" nil nil 1))
+                   (name (treesit-node-child-by-field-name tag-start "name")))
+         (push name nodes))
+       (when-let* ((tag-end (treesit-search-subtree element "^tag_end$" nil nil 1))
+                   (name (treesit-node-child-by-field-name tag-end "name")))
+         (push name nodes))
+       (nreverse nodes)))
+    ("self_closing_tag"
+     (when-let* ((name (treesit-node-child-by-field-name element "name")))
+       (list name)))))
 
 (defun templ-ts-web--find-tag-start-at (pos)
   "Find a `tag_start' node at or near POS.
@@ -246,6 +275,26 @@ On repeat, expand selection to the parent element."
     (when element
       (push-mark (treesit-node-end element) nil t)
       (goto-char (treesit-node-start element)))))
+
+;;; Feature: element rename
+
+(defun templ-ts-web-element-rename (new-name)
+  "Rename the enclosing HTML element's tag to NEW-NAME.
+Replaces the tag name in both the opening and closing tags."
+  (interactive
+   (let ((name (when-let* ((el (templ-ts-web--enclosing-element)))
+                 (templ-ts-web--element-tag-name el))))
+     (list (read-string (if name (format "Rename <%s> to: " name) "Tag name: ")))))
+  (when (and new-name (not (string-empty-p new-name)))
+    (when-let* ((element (templ-ts-web--enclosing-element))
+                (name-nodes (templ-ts-web--element-name-nodes element)))
+      ;; Replace end-to-start to preserve positions.
+      (dolist (node (sort (copy-sequence name-nodes)
+                          (lambda (a b) (> (treesit-node-start a)
+                                           (treesit-node-start b)))))
+        (delete-region (treesit-node-start node) (treesit-node-end node))
+        (goto-char (treesit-node-start node))
+        (insert new-name)))))
 
 ;;; Minor mode
 

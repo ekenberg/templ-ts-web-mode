@@ -297,6 +297,44 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (should (= (ttwt--point-in-content) 1))
     (should (= (- (region-end) (length ttwt--wrapper-prefix)) 29))))
 
+;;; Tests: element-rename
+
+(ert-deftest ttwt-rename-div-to-span ()
+  "Rename <div> to <span> changes both tags."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-rename "span")
+    (should (string= (ttwt--content) "<span>hello</span>"))))
+
+(ert-deftest ttwt-rename-from-open-tag ()
+  "Rename works when point is in the opening tag."
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-element-rename "section")
+    (should (string= (ttwt--content) "<section>hello</section>"))))
+
+(ert-deftest ttwt-rename-from-close-tag ()
+  "Rename works when point is in the closing tag."
+  (ttwt--with-templ "<div>hello</di|v>" t
+    (templ-ts-web-element-rename "p")
+    (should (string= (ttwt--content) "<p>hello</p>"))))
+
+(ert-deftest ttwt-rename-nested-inner ()
+  "Rename targets the innermost element."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-rename "em")
+    (should (string= (ttwt--content) "<div><em>text</em></div>"))))
+
+(ert-deftest ttwt-rename-with-attributes ()
+  "Rename preserves attributes on the opening tag."
+  (ttwt--with-templ "<div class=\"foo\">hel|lo</div>" t
+    (templ-ts-web-element-rename "section")
+    (should (string= (ttwt--content) "<section class=\"foo\">hello</section>"))))
+
+(ert-deftest ttwt-rename-empty-string-noop ()
+  "Rename with empty string does nothing."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-rename "")
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()
