@@ -335,6 +335,43 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-rename "")
     (should (string= (ttwt--content) "<div>hello</div>"))))
 
+;;; Tests: element-wrap
+
+(ert-deftest ttwt-wrap-region-inline ()
+  "Wrap inline region without newlines."
+  (ttwt--with-templ "<p>hello</p>" nil
+    ;; Select "hello"
+    (goto-char (+ (length ttwt--wrapper-prefix) 4))
+    (push-mark (+ (length ttwt--wrapper-prefix) 9) nil t)
+    (templ-ts-web-element-wrap "em")
+    (should (string= (ttwt--content) "<p><em>hello</em></p>"))))
+
+(ert-deftest ttwt-wrap-enclosing-element ()
+  "Wrap enclosing element with block-style newlines."
+  (ttwt--with-templ "<span>te|xt</span>" t
+    (templ-ts-web-element-wrap "div")
+    (let ((content (ttwt--content)))
+      ;; Should have wrapping div with the span inside
+      (should (string-match-p "<div>" content))
+      (should (string-match-p "</div>" content))
+      (should (string-match-p "<span>text</span>" content)))))
+
+(ert-deftest ttwt-wrap-empty-string-noop ()
+  "Wrap with empty string does nothing."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-wrap "")
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-wrap-nested-inner ()
+  "Wrap targets the innermost element when no region."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-wrap "em")
+    (let ((content (ttwt--content)))
+      (should (string-match-p "<em>" content))
+      (should (string-match-p "</em>" content))
+      ;; The outer div should remain unwrapped
+      (should (string-match-p "\\`<div>" content)))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()

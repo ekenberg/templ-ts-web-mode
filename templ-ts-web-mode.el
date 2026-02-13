@@ -21,6 +21,7 @@
 ;; - Element navigation: jump to beginning/end of enclosing element
 ;; - Element select: mark enclosing element, expand on repeat
 ;; - Element rename: change tag name in both open and close tags
+;; - Element wrap: wrap region or enclosing element with a new tag
 
 ;;; Code:
 
@@ -321,6 +322,44 @@ Replaces the tag name in both the opening and closing tags."
         (delete-region (treesit-node-start node) (treesit-node-end node))
         (goto-char (treesit-node-start node))
         (insert new-name)))))
+
+;;; Feature: element wrap
+
+(defun templ-ts-web-element-wrap (tag-name)
+  "Wrap the region or enclosing element with TAG-NAME tags.
+With an active region, wraps the selected text.  Otherwise wraps
+the enclosing element.  Block-wraps (with newlines and
+re-indentation) when the content spans multiple lines or when
+wrapping a whole element; inline-wraps otherwise."
+  (interactive
+   (list (completing-read "Wrap with tag: "
+                          templ-ts-web-tag-list nil nil nil
+                          'templ-ts-web--tag-history)))
+  (when (and tag-name (not (string-empty-p tag-name)))
+    (let (beg end block-p)
+      (if (use-region-p)
+          (setq beg (region-beginning)
+                end (region-end)
+                block-p (string-match-p "\n" (buffer-substring-no-properties beg end)))
+        (when-let* ((element (templ-ts-web--enclosing-element)))
+          (setq beg (treesit-node-start element)
+                end (treesit-node-end element)
+                block-p t)))
+      (when (and beg end)
+        (let ((open-tag (concat "<" tag-name ">"))
+              (close-tag (concat "</" tag-name ">")))
+          (goto-char end)
+          (if block-p
+              (insert "\n" close-tag)
+            (insert close-tag))
+          (goto-char beg)
+          (if block-p
+              (insert open-tag "\n")
+            (insert open-tag))
+          (when block-p
+            (treesit-update-ranges)
+            (indent-region beg (+ end (length open-tag) (length close-tag) 2)))
+          (goto-char beg))))))
 
 ;;; Minor mode
 
