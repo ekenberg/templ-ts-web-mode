@@ -40,6 +40,8 @@ Or from within Emacs:
 
 **Manual testing before finishing.** After implementing a feature and automated tests pass, always ask the user to manually test in Emacs before updating TODO.md or proposing a commit. Do not treat a feature as done until the user confirms it works.
 
+**Reference files.** The `reference/` directory contains source files for packages we draw from (e.g., `web-mode.el`). Consult these when implementing features to understand how the original works.
+
 ## Code Style
 
 Write idiomatic, clear Emacs Lisp. Prefer `when`/`unless` over one-armed `if`, use `when-let*`/`if-let*` where appropriate, favor `pcase`/`cl-destructuring-bind` for structured data. Name functions and variables descriptively. Keep functions short and single-purpose.
