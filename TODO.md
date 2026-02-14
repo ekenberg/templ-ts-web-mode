@@ -25,11 +25,11 @@
 - [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
 - [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
 - [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-auto-quote`
+- [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
 
 ## Backlog
 
 ### Cross-cutting
-- [ ] Keybindings with web-mode-compatible defaults for implemented functions
 - [ ] Configuration via `defcustom` where it makes sense (e.g. auto-pairing, auto-quoting)
 
 ### Investigation

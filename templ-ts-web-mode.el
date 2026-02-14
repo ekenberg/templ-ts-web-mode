@@ -836,8 +836,25 @@ Use \\[keyboard-quit] to deactivate the mark and reset."
 ;;; Minor mode
 
 (defvar templ-ts-web-mode-map
-  (let ((map (make-sparse-keymap)))
+  (let ((map (make-sparse-keymap))
+        (elt-map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'templ-ts-web--smart-enter)
+    (define-key map (kbd "C-c C-e") elt-map)
+    (define-key map (kbd "C-c C-m") #'templ-ts-web-mark-and-expand)
+    ;; Element prefix: C-c C-e
+    (define-key elt-map (kbd "/") #'templ-ts-web-element-close)
+    (define-key elt-map (kbd "a") #'templ-ts-web-element-content-select)
+    (define-key elt-map (kbd "b") #'templ-ts-web-element-beginning)
+    (define-key elt-map (kbd "c") #'templ-ts-web-element-clone)
+    (define-key elt-map (kbd "e") #'templ-ts-web-element-end)
+    (define-key elt-map (kbd "k") #'templ-ts-web-element-kill)
+    (define-key elt-map (kbd "m") #'templ-ts-web-element-navigate)
+    (define-key elt-map (kbd "n") #'templ-ts-web-element-next)
+    (define-key elt-map (kbd "p") #'templ-ts-web-element-previous)
+    (define-key elt-map (kbd "r") #'templ-ts-web-element-rename)
+    (define-key elt-map (kbd "s") #'templ-ts-web-element-select)
+    (define-key elt-map (kbd "v") #'templ-ts-web-element-vanish)
+    (define-key elt-map (kbd "w") #'templ-ts-web-element-wrap)
     map)
   "Keymap for `templ-ts-web-mode'.")
 
