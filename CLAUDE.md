@@ -15,7 +15,7 @@ Emacs Lisp minor mode that ports selected web-mode features â€” piece by piece â
 Tests use ERT (Emacs Lisp Regression Testing). Run from command line:
 
 ```bash
-/usr/bin/emacs -batch -l templ-ts-web-mode-tests.el -f ert-run-tests-batch-and-exit
+/usr/bin/emacs -batch -l templ-ts-web-mode-tests.el -f ert-run-tests-batch-and-exit 2>&1 | tail -3
 ```
 
 Or from within Emacs:
