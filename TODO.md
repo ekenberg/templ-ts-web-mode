@@ -22,11 +22,9 @@
 - [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
 - [x] Select element content (`web-mode-element-content-select`)
 - [x] Element clone (`web-mode-element-clone`)
+- [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
 
 ## Backlog
-
-### Element operations
-- [ ] Element close (`web-mode-element-close`)
 
 ### Selection
 - [ ] Mark and expand (`web-mode-mark-and-expand`)

@@ -630,6 +630,86 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (should (eq (ttwt--face-at 6) 'templ-ts-web-data-attr-face))
     (should (eq (ttwt--face-at 17) 'templ-ts-web-data-attr-face))))
 
+;;; Tests: element-close
+
+(ert-deftest ttwt-element-close-in-content ()
+  "Close inserts </div> when point is in content."
+  (ttwt--with-templ "<div>hello|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-after-close-slash ()
+  "Close after `</' completes the tag name."
+  (ttwt--with-templ "<div>hello</|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-after-open-angle ()
+  "Close after `<' inserts /name>."
+  (ttwt--with-templ "<div>hello<|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-with-existing-angle ()
+  "Close after `</' with `>' already present omits duplicate `>'."
+  (ttwt--with-templ "<div>hello</|>" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-nested ()
+  "Close targets the innermost unclosed element."
+  (ttwt--with-templ "<div><span>text|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div><span>text</span>"))))
+
+(ert-deftest ttwt-element-close-nested-inner-closed ()
+  "Close targets outer when inner is already closed."
+  (ttwt--with-templ "<div><span>text</span>|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div><span>text</span></div>"))))
+
+(ert-deftest ttwt-element-close-no-unclosed ()
+  "Close does nothing when all tags are balanced."
+  (ttwt--with-templ "<div>hello</div>|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-void-noop ()
+  "Close does nothing after void elements."
+  (ttwt--with-templ "<br>|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<br>"))))
+
+(ert-deftest ttwt-element-close-inside-open-tag-noop ()
+  "Close does nothing when point is inside an opening tag."
+  (ttwt--with-templ "<div class=\"foo|\">" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div class=\"foo\">"))))
+
+(ert-deftest ttwt-element-close-partial-name ()
+  "Close completes partial tag name after `</'."
+  (ttwt--with-templ "<div>hello</d|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-partial-name-longer ()
+  "Close completes longer partial tag name after `</'."
+  (ttwt--with-templ "<section>hello</sec|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<section>hello</section>"))))
+
+(ert-deftest ttwt-element-close-full-name-no-angle ()
+  "Close adds `>' when full tag name is typed but `>' is missing."
+  (ttwt--with-templ "<div>hello</div|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</div>"))))
+
+(ert-deftest ttwt-element-close-partial-name-mismatch ()
+  "Close does nothing when partial name doesn't match unclosed tag."
+  (ttwt--with-templ "<div>hello</sp|" t
+    (templ-ts-web-element-close)
+    (should (string= (ttwt--content) "<div>hello</sp"))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()

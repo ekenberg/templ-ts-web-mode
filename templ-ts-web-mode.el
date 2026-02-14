@@ -490,6 +490,64 @@ remaining content.  For self-closing tags, removes the entire element."
              (set-marker beg nil)
              (set-marker end nil))))))))
 
+;;; Feature: element close
+
+(defun templ-ts-web--inside-tag-p ()
+  "Return non-nil if point is inside an HTML tag.
+First checks tree-sitter for a `tag_start', `tag_end', or
+`self_closing_tag' ancestor with point strictly inside its range.
+Falls back to a text heuristic (unclosed `<' before point) to
+catch partial tags in ERROR nodes."
+  (or
+   ;; Tree-sitter: proper tag node containing point.
+   (when-let* ((node (treesit-node-at (point) 'templ))
+               (tag (or (and (member (treesit-node-type node)
+                                     '("tag_start" "tag_end" "self_closing_tag"))
+                             node)
+                        (templ-ts-web--ancestor-of-type
+                         node "tag_start" "tag_end" "self_closing_tag"))))
+     (and (>= (point) (treesit-node-start tag))
+          (< (point) (treesit-node-end tag))))
+   ;; Text fallback: an unclosed `<' before point (handles ERROR nodes).
+   (save-excursion
+     (let ((pos (point)))
+       (and (search-backward "<" (max (- pos 500) (point-min)) t)
+            (not (search-forward ">" pos t)))))))
+
+(defun templ-ts-web-element-close ()
+  "Close the innermost unclosed HTML element by inserting its closing tag.
+Adapts to context:
+- After `</': inserts the tag name (and `>' if needed).
+- After `<': inserts `/name>' (and `>' if needed).
+- In content: inserts `</name>'.
+Does nothing if point is inside a tag, no unclosed element exists,
+or the context is not templ HTML."
+  (interactive)
+  (when (templ-ts-web--in-templ-p)
+    (let ((has-close-angle (looking-at-p "[ \t]*>")))
+      (cond
+       ;; After "</" with optional partial name — complete the closing tag
+       ((looking-back "</\\([a-zA-Z]*\\)" (- (point) 50))
+        (let* ((partial (match-string 1))
+               (name (save-excursion
+                       (goto-char (match-beginning 0))
+                       (templ-ts-web--find-unclosed-tag-name))))
+          (when (and name (string-prefix-p partial name))
+            (insert (substring name (length partial))
+                    (if has-close-angle "" ">")))))
+       ;; After "<" (but not "</") — insert /name>
+       ((and (looking-back "<" (1- (point)))
+             (not (looking-back "</" (- (point) 2)))
+             (not (looking-at-p "[a-zA-Z/]")))
+        (when-let* ((name (save-excursion
+                            (goto-char (1- (point)))
+                            (templ-ts-web--find-unclosed-tag-name))))
+          (insert "/" name (if has-close-angle "" ">"))))
+       ;; General case — insert </name> if not inside a tag
+       ((not (templ-ts-web--inside-tag-p))
+        (when-let* ((name (templ-ts-web--find-unclosed-tag-name)))
+          (insert "</" name ">")))))))
+
 ;;; Feature: select element content
 
 (defun templ-ts-web-element-content-select ()
