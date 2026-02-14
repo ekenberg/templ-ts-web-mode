@@ -16,12 +16,10 @@
 
 - [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
 - [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
+- [x] Next element (`web-mode-element-next`)
+- [x] Previous element (`web-mode-element-previous`)
 
 ## Backlog
-
-### Navigation
-- [ ] Next element (`web-mode-element-next`)
-- [ ] Previous element (`web-mode-element-previous`)
 
 ### Selection
 - [ ] Select element content (`web-mode-element-content-select`)

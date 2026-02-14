@@ -309,6 +309,46 @@ No-op on self-closing tags."
               (goto-char (treesit-node-start tag-start))
             (goto-char (treesit-node-start tag-end))))))))
 
+(defun templ-ts-web--sibling-reference (element)
+  "Return the node to use for sibling navigation from ELEMENT.
+When ELEMENT is a `self_closing_tag' wrapped in an `element',
+returns the wrapper so that sibling traversal operates at the
+correct tree level."
+  (if (and (equal (treesit-node-type element) "self_closing_tag")
+           (let ((parent (treesit-node-parent element)))
+             (and parent (equal (treesit-node-type parent) "element")
+                  parent)))
+      (treesit-node-parent element)
+    element))
+
+(defun templ-ts-web-element-next ()
+  "Move point to the beginning of the next sibling HTML element.
+Stays within the same parent — does not cross parent boundaries."
+  (interactive)
+  (when-let* ((element (templ-ts-web--sibling-reference
+                        (templ-ts-web--enclosing-element))))
+    (let ((sibling (treesit-node-next-sibling element)))
+      (while (and sibling
+                  (not (member (treesit-node-type sibling)
+                               '("element" "self_closing_tag"))))
+        (setq sibling (treesit-node-next-sibling sibling)))
+      (when sibling
+        (goto-char (treesit-node-start sibling))))))
+
+(defun templ-ts-web-element-previous ()
+  "Move point to the beginning of the previous sibling HTML element.
+Stays within the same parent — does not cross parent boundaries."
+  (interactive)
+  (when-let* ((element (templ-ts-web--sibling-reference
+                        (templ-ts-web--enclosing-element))))
+    (let ((sibling (treesit-node-prev-sibling element)))
+      (while (and sibling
+                  (not (member (treesit-node-type sibling)
+                               '("element" "self_closing_tag"))))
+        (setq sibling (treesit-node-prev-sibling sibling)))
+      (when sibling
+        (goto-char (treesit-node-start sibling))))))
+
 (defun templ-ts-web-element-select ()
   "Select the enclosing HTML element.
 On repeat, expand selection to the parent element."

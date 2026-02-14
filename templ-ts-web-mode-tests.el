@@ -260,6 +260,74 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-navigate)
     (should (= (ttwt--point-in-content) 1))))
 
+;;; Tests: element-next
+
+(ert-deftest ttwt-next-sibling ()
+  "Move from first sibling to second."
+  ;; <div><span>a</span><em>b|</em></div>
+  ;;      ^6         ^16
+  (ttwt--with-templ "<div><span>a|</span><em>b</em></div>" t
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 20))))
+
+(ert-deftest ttwt-next-no-sibling ()
+  "No-op when no next sibling element."
+  (ttwt--with-templ "<div><span>a|</span></div>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-next)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-next-skips-text ()
+  "Next element skips over text nodes between siblings."
+  ;; <div><span>a</span>text<em>b</em></div>
+  ;;      ^6              ^21
+  (ttwt--with-templ "<div><span>a|</span>text<em>b</em></div>" t
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 24))))
+
+(ert-deftest ttwt-next-past-self-closing ()
+  "Next element moves past a self-closing tag without getting stuck."
+  ;; <div><br /><span>a</span></div>
+  ;;      ^6    ^12
+  (ttwt--with-templ "<div><br />|<span>a</span></div>" t
+    ;; Point is right after <br />, should be inside it or near it.
+    ;; First, go back to inside the <br /> element.
+    (goto-char (+ (length ttwt--wrapper-prefix) 6))
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 12))))
+
+;;; Tests: element-previous
+
+(ert-deftest ttwt-previous-sibling ()
+  "Move from second sibling to first."
+  (ttwt--with-templ "<div><span>a</span><em>b|</em></div>" t
+    (templ-ts-web-element-previous)
+    (should (= (ttwt--point-in-content) 6))))
+
+(ert-deftest ttwt-previous-no-sibling ()
+  "No-op when no previous sibling element."
+  (ttwt--with-templ "<div><span>a|</span></div>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-previous)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-previous-skips-text ()
+  "Previous element skips over text nodes between siblings."
+  (ttwt--with-templ "<div><span>a</span>text<em>b|</em></div>" t
+    (templ-ts-web-element-previous)
+    (should (= (ttwt--point-in-content) 6))))
+
+(ert-deftest ttwt-previous-past-self-closing ()
+  "Previous element moves past a self-closing tag without getting stuck."
+  ;; <div><span>a</span><br /></div>
+  ;;      ^6             ^20
+  (ttwt--with-templ "<div><span>a</span><br /><em>b|</em></div>" t
+    ;; Point is in <em>, go to <br /> first
+    (templ-ts-web-element-previous)
+    ;; Now at <br />, go to <span>
+    (templ-ts-web-element-previous)
+    (should (= (ttwt--point-in-content) 6))))
+
 ;;; Tests: element-beginning
 
 (ert-deftest ttwt-element-beginning-from-content ()
