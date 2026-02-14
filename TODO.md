@@ -18,6 +18,7 @@
 - [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
 - [x] Next element (`web-mode-element-next`)
 - [x] Previous element (`web-mode-element-previous`)
+- [x] Element kill (`web-mode-element-kill`)
 
 ## Backlog
 
@@ -26,7 +27,6 @@
 
 ### Element operations
 - [ ] Element close (`web-mode-element-close`)
-- [ ] Element kill (`web-mode-element-kill`)
 - [ ] Element clone (`web-mode-element-clone`)
 - [ ] Element vanish (`web-mode-element-vanish`) — unwrap: remove tags, keep content
 

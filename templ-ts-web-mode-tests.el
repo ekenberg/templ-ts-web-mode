@@ -412,6 +412,39 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (should (= (ttwt--point-in-content) 1))
     (should (= (- (region-end) (length ttwt--wrapper-prefix)) 29))))
 
+;;; Tests: element-kill
+
+(ert-deftest ttwt-kill-element ()
+  "Kill removes the entire element and puts it on the kill ring."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) ""))
+    (should (string= (car kill-ring) "<div>hello</div>"))))
+
+(ert-deftest ttwt-kill-nested-inner ()
+  "Kill targets the innermost element."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) "<div></div>"))))
+
+(ert-deftest ttwt-kill-self-closing ()
+  "Kill removes a self-closing tag."
+  (ttwt--with-templ "<div><br| /></div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) "<div></div>"))))
+
+(ert-deftest ttwt-kill-at-child-start ()
+  "Kill at `<' of child element kills the child, not the parent."
+  (ttwt--with-templ "<div>|<span>text</span></div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) "<div></div>"))))
+
+(ert-deftest ttwt-kill-in-gap-before-child ()
+  "Kill in whitespace before child element kills the parent."
+  (ttwt--with-templ "<div>|  <span>text</span></div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) ""))))
+
 ;;; Tests: element-rename
 
 (ert-deftest ttwt-rename-div-to-span ()

@@ -424,6 +424,26 @@ wrapping a whole element; inline-wraps otherwise."
             (indent-region beg (+ end (length open-tag) (length close-tag) 2)))
           (goto-char beg))))))
 
+;;; Feature: element kill
+
+(defun templ-ts-web-element-kill ()
+  "Kill the enclosing HTML element (tags and content).
+Puts the killed text on the kill ring.  When point is in the gap
+between child elements (e.g. leading whitespace), kills the parent
+element rather than the next child."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    ;; treesit-node-at returns the nearest node at-or-after point.
+    ;; When point is in a gap between children (whitespace before or
+    ;; after an element), it finds the nearest child — but point
+    ;; isn't actually inside it.  Go to parent.
+    (when (or (< (point) (treesit-node-start element))
+              (>= (point) (treesit-node-end element)))
+      (setq element (or (templ-ts-web--ancestor-of-type element
+                                                         "element" "self_closing_tag")
+                        element)))
+    (kill-region (treesit-node-start element) (treesit-node-end element))))
+
 ;;; Feature: data-* attribute fontification
 
 (defun templ-ts-web--install-data-attr-fontification ()
