@@ -36,6 +36,7 @@
 - [ ] Configuration via `defcustom` where it makes sense (e.g. auto-pairing, auto-quoting)
 
 ### Investigation
+- [ ] CSS blocks in templ — formatting is broken and no fontification; investigate parsing and add support
 - [ ] Investigate script tags in templ — how they parse, how JS looks/behaves inside templ context
 - [ ] Indentation: uses tabs instead of spaces — investigate and fix
 
