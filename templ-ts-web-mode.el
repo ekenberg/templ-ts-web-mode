@@ -342,10 +342,10 @@ Otherwise run the normal binding for RET."
     (goto-char (treesit-node-start element))))
 
 (defun templ-ts-web-element-end ()
-  "Move point to the end of the enclosing HTML element."
+  "Move point to the closing `>' of the enclosing HTML element."
   (interactive)
   (when-let* ((element (templ-ts-web--enclosing-element)))
-    (goto-char (treesit-node-end element))))
+    (goto-char (1- (treesit-node-end element)))))
 
 (defun templ-ts-web-element-navigate ()
   "Jump between matching open and close tags of the enclosing element.

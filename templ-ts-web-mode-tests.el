@@ -433,22 +433,29 @@ POINT-MARKER: if non-nil, `|' in content marks point."
 ;;; Tests: element-end
 
 (ert-deftest ttwt-element-end-from-content ()
-  "Point in element content moves past the closing `>'."
+  "Point in element content moves to the closing `>'."
   (ttwt--with-templ "<div>hel|lo</div>" t
     (templ-ts-web-element-end)
-    (should (= (ttwt--point-in-content) 17))))
+    (should (= (ttwt--point-in-content) 16))))
 
 (ert-deftest ttwt-element-end-from-open-tag ()
-  "Point in the opening tag moves past the closing `>'."
+  "Point in the opening tag moves to the closing `>'."
   (ttwt--with-templ "<di|v>hello</div>" t
     (templ-ts-web-element-end)
-    (should (= (ttwt--point-in-content) 17))))
+    (should (= (ttwt--point-in-content) 16))))
 
 (ert-deftest ttwt-element-end-nested ()
   "Point in inner element goes to inner element's end."
   (ttwt--with-templ "<div><span>te|xt</span></div>" t
     (templ-ts-web-element-end)
-    (should (= (ttwt--point-in-content) 23))))
+    (should (= (ttwt--point-in-content) 22))))
+
+(ert-deftest ttwt-element-end-then-beginning ()
+  "Round-trip: element-end then element-beginning returns to start."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-end)
+    (templ-ts-web-element-beginning)
+    (should (= (ttwt--point-in-content) 1))))
 
 ;;; Tests: element-select
 

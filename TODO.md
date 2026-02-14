@@ -26,7 +26,7 @@
 - [x] Test infrastructure with templ wrapper helper
 - [x] CLAUDE.md with project docs and test commands
 - [x] Element beginning (`web-mode-element-beginning`)
-- [x] Element end (`web-mode-element-end`)
+- [x] Element end (`web-mode-element-end`) — fixed: lands on `>` not past it, enabling round-trip with element-beginning
 - [x] Element select (`web-mode-element-select`) — with expand-on-repeat
 - [x] Element rename (`web-mode-element-rename`)
 - [x] Element wrap (`web-mode-element-wrap`) — block-wrap with indent or inline
