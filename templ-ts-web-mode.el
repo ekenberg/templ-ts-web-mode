@@ -1,10 +1,10 @@
 ;;; templ-ts-web-mode.el --- Web-editing conveniences for templ-ts-mode -*- lexical-binding: t; -*-
 
-;; Author: Johan
+;; Author: Johan Ekenberg
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: languages, templ, web
-;; URL: https://github.com/johan/templ-ts-web-mode
+;; URL: https://github.com/ekenberg/templ-ts-web-mode
 
 ;; This file is not part of GNU Emacs.
 
