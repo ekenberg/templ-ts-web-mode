@@ -73,6 +73,14 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (insert (char-to-string char))
     (run-hooks 'post-self-insert-hook)))
 
+(defun ttwt--region-beg-in-content ()
+  "Return region-beginning as 1-based offset into content."
+  (- (region-beginning) (length ttwt--wrapper-prefix)))
+
+(defun ttwt--region-end-in-content ()
+  "Return region-end as 1-based offset into content."
+  (- (region-end) (length ttwt--wrapper-prefix)))
+
 ;;; Tests: auto-close on `>'
 
 (ert-deftest ttwt-close-div ()
@@ -816,14 +824,6 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (should (string= (ttwt--content) "<div>hello</sp"))))
 
 ;;; Tests: mark-and-expand
-
-(defun ttwt--region-beg-in-content ()
-  "Return region-beginning as 1-based offset into content."
-  (- (region-beginning) (length ttwt--wrapper-prefix)))
-
-(defun ttwt--region-end-in-content ()
-  "Return region-end as 1-based offset into content."
-  (- (region-end) (length ttwt--wrapper-prefix)))
 
 (ert-deftest ttwt-expand-from-content ()
   "First expand from content selects element content."

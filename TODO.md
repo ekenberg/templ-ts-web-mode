@@ -2,7 +2,6 @@
 
 ## Backlog
 
-- [~] Fix element-kill/clone near void elements — tentatively done. Root cause was gap detection in `--enclosing-element` using `when` (single pass) instead of `while` (loop). Wrapper `element` nodes around `self_closing_tag` have identical bounds, so one walk-up wasn't enough. Fix: `when` → `while`. User confirmed kill/clone now work correctly. Tests added: `ttwt-kill-at-void-start`, `ttwt-kill-after-void-no-space`. Awaiting final sign-off.
 - [ ] Improve installation instructions — add use-package example, test hook with templ-ts-mode
 
 ### Investigation (resolved — upstream)
@@ -41,6 +40,7 @@
 - [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
 - [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
 - [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-attr-auto-quote`
+- [x] Fix element-kill/clone near void elements — gap detection in `--enclosing-element` needed `while` (loop) instead of `when` (single pass) because wrapper `element` nodes around `self_closing_tag` have identical bounds
 - [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
 - [x] Configuration via `defcustom` — `templ-ts-web-element-auto-close`, `templ-ts-web-element-auto-complete`, `templ-ts-web-attr-auto-quote`
 - [x] GitHub publish — README, LICENSE, package headers, remote repo at github.com/ekenberg/templ-ts-web-mode
