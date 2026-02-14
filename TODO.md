@@ -27,10 +27,9 @@
 - [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-attr-auto-quote`
 - [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
 - [x] Configuration via `defcustom` — `templ-ts-web-element-auto-close`, `templ-ts-web-element-auto-complete`, `templ-ts-web-attr-auto-quote`
+- [x] GitHub publish — README, LICENSE, package headers, remote repo at github.com/ekenberg/templ-ts-web-mode
 
 ## Backlog
-
-- [ ] GitHub publish — create remote repo, README, LICENSE, .gitignore cleanup, package headers
 
 ### Investigation (resolved — upstream)
 - Investigated: CSS blocks — `css_declaration` closing `}` misindented, no CSS fontification beyond property names. All upstream in templ-ts-mode.
