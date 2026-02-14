@@ -1,34 +1,5 @@
 # TODO — templ-ts-web-mode
 
-## Completed
-
-- [x] Auto-close tags on `>` (void elements, self-closing, nested same-name)
-- [x] Auto-complete closing tags on `</`
-- [x] Smart Enter between open/close tags
-- [x] Text-based tag counting (replacing broken ERROR-node AST approach)
-- [x] Test infrastructure with templ wrapper helper
-- [x] CLAUDE.md with project docs and test commands
-- [x] Element beginning (`web-mode-element-beginning`)
-- [x] Element end (`web-mode-element-end`)
-- [x] Element select (`web-mode-element-select`) — with expand-on-repeat
-- [x] Element rename (`web-mode-element-rename`)
-- [x] Element wrap (`web-mode-element-wrap`) — block-wrap with indent or inline
-
-- [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
-- [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
-- [x] Next element (`web-mode-element-next`)
-- [x] Previous element (`web-mode-element-previous`)
-- [x] Element kill (`web-mode-element-kill`)
-- [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
-- [x] Select element content (`web-mode-element-content-select`)
-- [x] Element clone (`web-mode-element-clone`)
-- [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
-- [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
-- [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-attr-auto-quote`
-- [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
-- [x] Configuration via `defcustom` — `templ-ts-web-element-auto-close`, `templ-ts-web-element-auto-complete`, `templ-ts-web-attr-auto-quote`
-- [x] GitHub publish — README, LICENSE, package headers, remote repo at github.com/ekenberg/templ-ts-web-mode
-
 ## Backlog
 
 - [ ] Improve installation instructions — add use-package example, test hook with templ-ts-mode
@@ -44,3 +15,31 @@
 - [ ] Fix `<script>` HTML element JS support — `templ-ts--treesit-update-ranges` only queries `(script_block_text)` (templ-native `script funcName() { }` blocks, which work) but not `(script_element_text)` (HTML `<script>` tags, which get no JS parsing/fontification/indentation)
 - [ ] Embed CSS parser for `<style>` elements — `style_element_text` is opaque text, needs `treesit-range-rules` with `:embed 'css` like the JS setup does for `script_block_text`
 - [ ] Don't hardcode `indent-tabs-mode t` — should respect user preference, not force tabs
+
+## Completed
+
+- [x] Auto-close tags on `>` (void elements, self-closing, nested same-name)
+- [x] Auto-complete closing tags on `</`
+- [x] Smart Enter between open/close tags
+- [x] Text-based tag counting (replacing broken ERROR-node AST approach)
+- [x] Test infrastructure with templ wrapper helper
+- [x] CLAUDE.md with project docs and test commands
+- [x] Element beginning (`web-mode-element-beginning`)
+- [x] Element end (`web-mode-element-end`)
+- [x] Element select (`web-mode-element-select`) — with expand-on-repeat
+- [x] Element rename (`web-mode-element-rename`)
+- [x] Element wrap (`web-mode-element-wrap`) — block-wrap with indent or inline
+- [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
+- [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
+- [x] Next element (`web-mode-element-next`)
+- [x] Previous element (`web-mode-element-previous`)
+- [x] Element kill (`web-mode-element-kill`)
+- [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
+- [x] Select element content (`web-mode-element-content-select`)
+- [x] Element clone (`web-mode-element-clone`)
+- [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
+- [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
+- [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-attr-auto-quote`
+- [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
+- [x] Configuration via `defcustom` — `templ-ts-web-element-auto-close`, `templ-ts-web-element-auto-complete`, `templ-ts-web-attr-auto-quote`
+- [x] GitHub publish — README, LICENSE, package headers, remote repo at github.com/ekenberg/templ-ts-web-mode
