@@ -68,6 +68,13 @@ Used by `templ-ts-web-element-rename' and other tag-prompting commands."
   :type '(repeat string)
   :group 'templ-ts-web)
 
+(defcustom templ-ts-web-auto-quote t
+  "Insert double quotes after `=' in HTML attributes.
+Disable if using `smartparens-mode' or `electric-pair-mode',
+which provide their own quote pairing."
+  :type 'boolean
+  :group 'templ-ts-web)
+
 (defvar templ-ts-web--tag-history nil
   "History list for tag name prompts.")
 
@@ -228,6 +235,25 @@ which is unreliable during mid-edit parse states."
                      ;; which steals close tags during mid-edit states.
                      (templ-ts-web--tag-is-unclosed-p name))
             (save-excursion (insert "</" name ">"))))))))
+
+;;; Feature: auto-quote on `='
+
+(defun templ-ts-web--post-equals ()
+  "After `=' is inserted, auto-quote if inside an HTML tag attribute.
+Inserts double quotes and positions point between them: attr=\"|\"."
+  (when (and templ-ts-web-auto-quote
+             (eq last-command-event ?=)
+             (>= (point) 3)
+             (templ-ts-web--in-templ-p)
+             ;; Don't fire if there's already a quote ahead.
+             (not (looking-at-p "[ \t]*[\"'{]")))
+    (treesit-update-ranges)
+    ;; Check that the character(s) before `=' form an attribute_name node.
+    (let ((node-before (treesit-node-at (- (point) 2) 'templ)))
+      (when (and node-before
+                 (equal (treesit-node-type node-before) "attribute_name"))
+        (insert "\"\"")
+        (backward-char)))))
 
 ;;; Feature: auto-complete on `</'
 
@@ -827,10 +853,12 @@ on top of a templ tree-sitter major mode."
       (progn
         (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle nil t)
         (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash nil t)
+        (add-hook 'post-self-insert-hook #'templ-ts-web--post-equals nil t)
         (add-hook 'deactivate-mark-hook #'templ-ts-web--expand-clear-state nil t)
         (templ-ts-web--install-data-attr-fontification))
     (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle t)
     (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash t)
+    (remove-hook 'post-self-insert-hook #'templ-ts-web--post-equals t)
     (remove-hook 'deactivate-mark-hook #'templ-ts-web--expand-clear-state t)
     (templ-ts-web--remove-data-attr-fontification)))
 

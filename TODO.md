@@ -24,11 +24,9 @@
 - [x] Element clone (`web-mode-element-clone`)
 - [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
 - [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
+- [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-auto-quote`
 
 ## Backlog
-
-### Editing convenience
-- [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)
 
 ### Cross-cutting
 - [ ] Keybindings with web-mode-compatible defaults for implemented functions

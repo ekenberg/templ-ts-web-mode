@@ -867,6 +867,43 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (deactivate-mark)
     (should (null templ-ts-web--expand-state))))
 
+;;; Tests: auto-quote on `='
+
+(ert-deftest ttwt-auto-quote-basic ()
+  "Typing = after attribute name inserts quotes."
+  (ttwt--with-templ "<div class" nil
+    (ttwt--type-char ?=)
+    (should (string= (ttwt--content) "<div class=\"\""))
+    ;; Point should be between the quotes.
+    (should (= (ttwt--point-in-content) 13))))
+
+(ert-deftest ttwt-auto-quote-data-attr ()
+  "Typing = after data-* attribute inserts quotes."
+  (ttwt--with-templ "<div data-testid" nil
+    (ttwt--type-char ?=)
+    (should (string= (ttwt--content) "<div data-testid=\"\""))
+    (should (= (ttwt--point-in-content) 19))))
+
+(ert-deftest ttwt-auto-quote-second-attr ()
+  "Typing = on a second attribute inserts quotes."
+  (ttwt--with-templ "<div class=\"foo\" id" nil
+    (ttwt--type-char ?=)
+    (should (string= (ttwt--content) "<div class=\"foo\" id=\"\""))
+    (should (= (ttwt--point-in-content) 22))))
+
+(ert-deftest ttwt-auto-quote-no-double-insert ()
+  "No quotes inserted when quote already follows."
+  (ttwt--with-templ "<div class|\"foo\">" t
+    (ttwt--type-char ?=)
+    (should (string= (ttwt--content) "<div class=\"foo\">"))))
+
+(ert-deftest ttwt-auto-quote-self-closing ()
+  "Typing = in a self-closing tag inserts quotes."
+  (ttwt--with-templ "<img src" nil
+    (ttwt--type-char ?=)
+    (should (string= (ttwt--content) "<img src=\"\""))
+    (should (= (ttwt--point-in-content) 11))))
+
 ;;; Tests: void element list
 
 (ert-deftest ttwt-void-elements-complete ()
