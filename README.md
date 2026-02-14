@@ -6,7 +6,7 @@ Emacs minor mode that adds [web-mode](https://web-mode.org/)-style HTML editing 
 
 `templ-ts-mode` provides syntax highlighting and indentation for [templ](https://templ.guide) files, but no HTML editing support — no auto-closing tags, no element navigation, no structural operations. `web-mode` has all of that, but it's a regex-based major mode designed for HTML-primary files. Templ is Go-primary with HTML islands — a different mental model.
 
-This minor mode cherry-picks the most useful HTML editing features from web-mode and re-implements them using tree-sitter, layered non-invasively on top of templ-ts-mode.
+This minor mode cherry-picks useful HTML editing features from web-mode and re-implements them using tree-sitter, layered non-invasively on top of templ-ts-mode.
 
 ## Requirements
 
@@ -42,28 +42,26 @@ All under the `C-c C-e` prefix:
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| `b` | `element-beginning` | Jump to start of enclosing element |
-| `e` | `element-end` | Jump to end of enclosing element |
-| `s` | `element-select` | Select enclosing element (expand on repeat) |
-| `a` | `element-content-select` | Select content between tags |
-| `n` | `element-next` | Jump to next sibling element |
-| `p` | `element-previous` | Jump to previous sibling element |
-| `m` | `element-navigate` | Jump between opening/closing tag |
-| `r` | `element-rename` | Rename tag (updates both open and close) |
-| `w` | `element-wrap` | Wrap element or region with a new tag |
-| `c` | `element-clone` | Duplicate element |
-| `k` | `element-kill` | Kill element |
-| `v` | `element-vanish` | Remove tags, keep content (unwrap) |
-| `/` | `element-close` | Insert closing tag for innermost unclosed element |
+| `b` | `templ-ts-web-element-beginning` | Jump to start of enclosing element |
+| `e` | `templ-ts-web-element-end` | Jump to end of enclosing element |
+| `s` | `templ-ts-web-element-select` | Select enclosing element (expand on repeat) |
+| `a` | `templ-ts-web-element-content-select` | Select content between tags |
+| `n` | `templ-ts-web-element-next` | Jump to next sibling element |
+| `p` | `templ-ts-web-element-previous` | Jump to previous sibling element |
+| `m` | `templ-ts-web-element-navigate` | Jump between opening/closing tag |
+| `r` | `templ-ts-web-element-rename` | Rename tag (updates both open and close) |
+| `w` | `templ-ts-web-element-wrap` | Wrap element or region with a new tag |
+| `c` | `templ-ts-web-element-clone` | Duplicate element |
+| `k` | `templ-ts-web-element-kill` | Kill element |
+| `v` | `templ-ts-web-element-vanish` | Remove tags, keep content (unwrap) |
+| `/` | `templ-ts-web-element-close` | Insert closing tag for innermost unclosed element |
 
 ### Other
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| `C-c C-m` | `mark-and-expand` | Progressive structural selection: attribute, element, parent content, parent, ceiling |
+| `C-c C-m` | `templ-ts-web-mark-and-expand` | Progressive structural selection: attribute, element, parent content, parent, ceiling |
 | `RET` | Smart Enter | Opens indented line between `<div>\|</div>` |
-
-Fontifies `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`).
 
 ## Customization
 
@@ -73,6 +71,8 @@ Fontifies `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face
 (setq templ-ts-web-element-auto-complete t) ; </ completes tag name
 (setq templ-ts-web-attr-auto-quote t)       ; = inserts ""
 ```
+
+`data-*` attributes are fontified with `templ-ts-web-data-attr-face` (inherits from `font-lock-builtin-face`). Customize the face to change appearance.
 
 ## License
 

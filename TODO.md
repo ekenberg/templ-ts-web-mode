@@ -31,6 +31,8 @@
 
 ## Backlog
 
+- [ ] Improve installation instructions — add use-package example, test hook with templ-ts-mode
+
 ### Investigation (resolved — upstream)
 - Investigated: CSS blocks — `css_declaration` closing `}` misindented, no CSS fontification beyond property names. All upstream in templ-ts-mode.
 - Investigated: `<script>` HTML elements — JS parser ranges miss `script_element_text` nodes. Upstream in templ-ts-mode.
