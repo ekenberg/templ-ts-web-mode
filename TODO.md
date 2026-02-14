@@ -23,11 +23,9 @@
 - [x] Select element content (`web-mode-element-content-select`)
 - [x] Element clone (`web-mode-element-clone`)
 - [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
+- [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
 
 ## Backlog
-
-### Selection
-- [ ] Mark and expand (`web-mode-mark-and-expand`)
 
 ### Editing convenience
 - [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)

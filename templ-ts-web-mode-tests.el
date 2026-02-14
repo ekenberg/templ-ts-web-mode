@@ -484,6 +484,16 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (should (= (ttwt--point-in-content) 12))
     (should (= (- (region-end) (length ttwt--wrapper-prefix)) 16))))
 
+(ert-deftest ttwt-content-select-in-gap-near-child ()
+  "Content select in text before a child selects parent's content."
+  ;; <div>text <span>child</span> more</div>
+  ;; point in "text", content: 6..34
+  (ttwt--with-templ "<div>tex|t <span>child</span> more</div>" t
+    (templ-ts-web-element-content-select)
+    (should (use-region-p))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 34))))
+
 (ert-deftest ttwt-content-select-self-closing-noop ()
   "Content select on self-closing tag is a no-op."
   (ttwt--with-templ "<div><br| /></div>" t
@@ -709,6 +719,153 @@ POINT-MARKER: if non-nil, `|' in content marks point."
   (ttwt--with-templ "<div>hello</sp|" t
     (templ-ts-web-element-close)
     (should (string= (ttwt--content) "<div>hello</sp"))))
+
+;;; Tests: mark-and-expand
+
+(defun ttwt--region-beg-in-content ()
+  "Return region-beginning as 1-based offset into content."
+  (- (region-beginning) (length ttwt--wrapper-prefix)))
+
+(defun ttwt--region-end-in-content ()
+  "Return region-end as 1-based offset into content."
+  (- (region-end) (length ttwt--wrapper-prefix)))
+
+(ert-deftest ttwt-expand-from-content ()
+  "First expand from content selects element content."
+  ;; <div>hel|lo</div>
+  ;; content: positions 6..11
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-mark-and-expand)
+    (should (use-region-p))
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 11))))
+
+(ert-deftest ttwt-expand-content-to-element ()
+  "Second expand from content selects full element."
+  ;; <div>hel|lo</div>
+  ;; element: positions 1..17
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-mark-and-expand)
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 1))
+    (should (= (ttwt--region-end-in-content) 17))))
+
+(ert-deftest ttwt-expand-element-to-ceiling ()
+  "Expanding from outermost element reaches ceiling."
+  ;; <div>hello</div>  — only element in component_block
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-mark-and-expand)   ; element-content
+    (templ-ts-web-mark-and-expand)   ; element
+    (templ-ts-web-mark-and-expand)   ; ceiling
+    (should (string= templ-ts-web--expand-state "ceiling"))))
+
+(ert-deftest ttwt-expand-ceiling-is-noop ()
+  "At ceiling, further calls are no-ops."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-mark-and-expand)   ; element-content
+    (templ-ts-web-mark-and-expand)   ; element
+    (templ-ts-web-mark-and-expand)   ; ceiling
+    (let ((beg (region-beginning))
+          (end (region-end)))
+      (templ-ts-web-mark-and-expand) ; no-op
+      (should (string= templ-ts-web--expand-state "ceiling"))
+      (should (= (region-beginning) beg))
+      (should (= (region-end) end)))))
+
+(ert-deftest ttwt-expand-from-attribute ()
+  "First expand from attribute selects the attribute."
+  ;; <div class="foo">hello</div>
+  ;;      ^6    ^16
+  (ttwt--with-templ "<div clas|s=\"foo\">hello</div>" t
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "attribute"))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 17))))
+
+(ert-deftest ttwt-expand-attribute-to-element ()
+  "From attribute, expand to entire element."
+  ;; <div class="foo">hello</div>
+  ;; element: 1..29
+  (ttwt--with-templ "<div clas|s=\"foo\">hello</div>" t
+    (templ-ts-web-mark-and-expand)   ; attribute
+    (templ-ts-web-mark-and-expand)   ; element
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 1))
+    (should (= (ttwt--region-end-in-content) 29))))
+
+(ert-deftest ttwt-expand-from-open-tag ()
+  "First expand from open tag selects entire element."
+  ;; <di|v>hello</div>
+  ;; element: 1..17
+  (ttwt--with-templ "<di|v>hello</div>" t
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 1))
+    (should (= (ttwt--region-end-in-content) 17))))
+
+(ert-deftest ttwt-expand-from-close-tag ()
+  "First expand from close tag selects entire element."
+  ;; <div>hello</di|v>
+  ;; element: 1..17
+  (ttwt--with-templ "<div>hello</di|v>" t
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 1))
+    (should (= (ttwt--region-end-in-content) 17))))
+
+(ert-deftest ttwt-expand-nested-climbs-parents ()
+  "Expanding through nested elements climbs to parent content then parent."
+  ;; <div><span>te|xt</span></div>
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-mark-and-expand)   ; span element-content (12..16)
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (should (= (ttwt--region-beg-in-content) 12))
+    (should (= (ttwt--region-end-in-content) 16))
+    (templ-ts-web-mark-and-expand)   ; span element (6..23)
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 23))
+    (templ-ts-web-mark-and-expand)   ; div element-content (6..23)
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 23))
+    (templ-ts-web-mark-and-expand)   ; div element (1..29)
+    (should (string= templ-ts-web--expand-state "element"))
+    (should (= (ttwt--region-beg-in-content) 1))
+    (should (= (ttwt--region-end-in-content) 29))
+    (templ-ts-web-mark-and-expand)   ; ceiling
+    (should (string= templ-ts-web--expand-state "ceiling"))))
+
+(ert-deftest ttwt-expand-from-content-near-child ()
+  "Expand from text near a child selects parent content, not child."
+  ;; <div>text <span>child</span> more</div>
+  ;; point in "text", parent content: 6..34
+  (ttwt--with-templ "<div>tex|t <span>child</span> more</div>" t
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (should (= (ttwt--region-beg-in-content) 6))
+    (should (= (ttwt--region-end-in-content) 34))))
+
+(ert-deftest ttwt-expand-self-closing ()
+  "Self-closing tag: no content level, attribute → tag(=element) → parent."
+  ;; <div><br| /></div>
+  (ttwt--with-templ "<div><br| /></div>" t
+    (templ-ts-web-mark-and-expand)   ; element (self-closing = element)
+    (should (string= templ-ts-web--expand-state "element"))
+    (templ-ts-web-mark-and-expand)   ; parent content
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (templ-ts-web-mark-and-expand)   ; parent element
+    (should (string= templ-ts-web--expand-state "element"))))
+
+(ert-deftest ttwt-expand-deactivate-clears-state ()
+  "Deactivating the mark clears expansion state."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-mark-and-expand)
+    (should (string= templ-ts-web--expand-state "element-content"))
+    (deactivate-mark)
+    (should (null templ-ts-web--expand-state))))
 
 ;;; Tests: void element list
 

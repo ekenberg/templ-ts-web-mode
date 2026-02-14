@@ -136,11 +136,22 @@ Returns the tag_start node or nil."
 
 (defun templ-ts-web--enclosing-element (&optional pos)
   "Return the innermost `element' or `self_closing_tag' node containing POS.
-POS defaults to point."
-  (when-let* ((node (treesit-node-at (or pos (point)) 'templ)))
-    (if (member (treesit-node-type node) '("element" "self_closing_tag"))
-        node
-      (templ-ts-web--ancestor-of-type node "element" "self_closing_tag"))))
+POS defaults to point.  Handles gap positions where `treesit-node-at'
+returns a nearby child rather than the true enclosing element."
+  (let ((p (or pos (point))))
+    (when-let* ((node (treesit-node-at p 'templ)))
+      (let ((element
+             (if (member (treesit-node-type node) '("element" "self_closing_tag"))
+                 node
+               (templ-ts-web--ancestor-of-type node "element" "self_closing_tag"))))
+        ;; Gap detection: treesit-node-at finds the nearest node, which
+        ;; may be a child element when point is in text between children.
+        (when (and element
+                   (or (< p (treesit-node-start element))
+                       (>= p (treesit-node-end element))))
+          (setq element (templ-ts-web--ancestor-of-type
+                         element "element" "self_closing_tag")))
+        element))))
 
 (defun templ-ts-web--find-unclosed-tag-name ()
   "Find the innermost unclosed tag name at point using text scanning.
@@ -620,6 +631,182 @@ Idempotent — removes any existing data-attr rules before appending."
   (treesit-font-lock-recompute-features)
   (font-lock-flush))
 
+;;; Feature: mark and expand
+
+(defvar-local templ-ts-web--expand-state nil
+  "Current expansion level for `templ-ts-web-mark-and-expand'.
+One of nil, \"attribute\", \"element-content\", \"element\",
+or \"ceiling\".  Cleared when the mark is deactivated.")
+
+(defun templ-ts-web--expand-clear-state ()
+  "Clear mark-and-expand state.  Added to `deactivate-mark-hook'."
+  (setq templ-ts-web--expand-state nil))
+
+(defun templ-ts-web--expand-find-context ()
+  "Determine the expansion context at point.
+Returns (TYPE . NODE) where TYPE is one of `attribute', `tag',
+`element-content', or `element', and NODE is the relevant
+tree-sitter node."
+  (let ((node (treesit-node-at (point) 'templ)))
+    (when node
+      (let ((cur node) found)
+        ;; Walk up from node at point to find first interesting ancestor.
+        ;; Skip any node that doesn't actually contain point — treesit-node-at
+        ;; returns the nearest node, which may be a sibling/child when point
+        ;; is in a text gap between elements.
+        (while (and cur (not found))
+          (if (or (< (point) (treesit-node-start cur))
+                  (>= (point) (treesit-node-end cur)))
+              ;; Node doesn't contain point — skip to parent.
+              (setq cur (treesit-node-parent cur))
+            (let ((type (treesit-node-type cur)))
+              (cond
+               ((equal type "attribute")
+                (setq found (cons 'attribute cur)))
+               ((member type '("tag_start" "tag_end"))
+                ;; Point is inside a tag — select the whole element.
+                (when-let* ((el (templ-ts-web--ancestor-of-type cur "element")))
+                  (setq found (cons 'element el))))
+               ((equal type "self_closing_tag")
+                (setq found (cons 'element cur)))
+               ((equal type "element")
+                (let ((ts (treesit-search-subtree cur "^tag_start$" nil nil 1))
+                      (te (treesit-search-subtree cur "^tag_end$" nil nil 1)))
+                  (if (and ts te)
+                      (setq found (cons 'element-content cur))
+                    (setq found (cons 'element cur)))))
+               ((equal type "component_block")
+                ;; Don't go above component_block — use nearest element.
+                (setq found nil cur nil))))
+            (unless found
+              (setq cur (treesit-node-parent cur)))))
+        ;; Fallback: try enclosing element.
+        (unless found
+          (when-let* ((el (templ-ts-web--enclosing-element)))
+            (setq found (cons 'element el))))
+        found))))
+
+(defun templ-ts-web--expand-select (beg end state)
+  "Set region to BEG..END and record expansion STATE."
+  (goto-char beg)
+  (push-mark end nil t)
+  (setq templ-ts-web--expand-state state))
+
+(defun templ-ts-web--expand-to-component-block ()
+  "Expand selection to the component_block content (ceiling).
+Returns non-nil on success."
+  (when-let* ((node (treesit-node-at (point) 'templ))
+              (cb (templ-ts-web--ancestor-of-type node "component_block")))
+    ;; Select from after opening `{' to before closing `}'.
+    ;; component_block children: first is `{', last is `}'.
+    (let ((first-child (treesit-node-child cb 0))
+          (last-child (treesit-node-child cb (1- (treesit-node-child-count cb)))))
+      (when (and first-child last-child)
+        (templ-ts-web--expand-select
+         (treesit-node-end first-child)
+         (treesit-node-start last-child)
+         "ceiling")
+        t))))
+
+(defun templ-ts-web-mark-and-expand ()
+  "Progressively expand the region through structural levels.
+Each call expands to the next level: attribute, element content,
+element, then parent levels up to the component block.
+Use \\[keyboard-quit] to deactivate the mark and reset."
+  (interactive)
+  (unless (templ-ts-web--in-templ-p)
+    (user-error "Not in a templ context"))
+  (pcase templ-ts-web--expand-state
+    ;; Already at ceiling — no-op.
+    ("ceiling" nil)
+
+    ;; Attribute → expand to enclosing element.
+    ("attribute"
+     (when-let* ((node (treesit-node-at (point) 'templ))
+                 (el (templ-ts-web--ancestor-of-type
+                      node "element" "self_closing_tag")))
+       (templ-ts-web--expand-select
+        (treesit-node-start el) (treesit-node-end el) "element")))
+
+    ;; Element content → expand to full element.
+    ;; Find the element whose content bounds match the current region,
+    ;; not just any element at point (avoids confusion when a sole child
+    ;; element starts at the same position as the parent's content).
+    ("element-content"
+     (let ((beg (region-beginning))
+           (end (region-end)))
+       (when-let* ((node (treesit-node-at beg 'templ)))
+         (let ((el node))
+           ;; Walk up to find the element whose content matches the region.
+           (while (and el
+                       (not (and (equal (treesit-node-type el) "element")
+                                 (let ((ts (treesit-search-subtree el "^tag_start$" nil nil 1))
+                                       (te (treesit-search-subtree el "^tag_end$" nil nil 1)))
+                                   (and ts te
+                                        (= (treesit-node-end ts) beg)
+                                        (= (treesit-node-start te) end))))))
+             (setq el (treesit-node-parent el)))
+           (when el
+             (templ-ts-web--expand-select
+              (treesit-node-start el) (treesit-node-end el) "element"))))))
+
+    ;; Element → expand to parent content, or ceiling.
+    ;; Find the element whose bounds match the current region, then
+    ;; get its parent.
+    ("element"
+     (let ((beg (region-beginning))
+           (end (region-end)))
+       (when-let* ((node (treesit-node-at beg 'templ)))
+         (let ((el node))
+           ;; Walk up to find the element matching the current region.
+           (while (and el
+                       (not (and (member (treesit-node-type el)
+                                         '("element" "self_closing_tag"))
+                                 (= (treesit-node-start el) beg)
+                                 (= (treesit-node-end el) end))))
+             (setq el (treesit-node-parent el)))
+           ;; Find a parent element strictly larger than the current one.
+           ;; Needed because self_closing_tag is wrapped in an element
+           ;; node with identical bounds — we must skip that wrapper.
+           (let ((parent
+                  (when el
+                    (let ((p (templ-ts-web--ancestor-of-type el "element")))
+                      (while (and p
+                                  (= (treesit-node-start p) beg)
+                                  (= (treesit-node-end p) end))
+                        (setq p (templ-ts-web--ancestor-of-type p "element")))
+                      p))))
+             (cond
+              ;; Parent element exists — expand to its content.
+              ((and parent (equal (treesit-node-type parent) "element"))
+               (let ((ts (treesit-search-subtree parent "^tag_start$" nil nil 1))
+                     (te (treesit-search-subtree parent "^tag_end$" nil nil 1)))
+                 (if (and ts te)
+                     (templ-ts-web--expand-select
+                      (treesit-node-end ts) (treesit-node-start te) "element-content")
+                   (templ-ts-web--expand-to-component-block))))
+              ;; No parent element — ceiling.
+              (t (templ-ts-web--expand-to-component-block))))))))
+
+    ;; No state / fresh start — detect context and select.
+    (_
+     (when-let* ((ctx (templ-ts-web--expand-find-context))
+                 (type (car ctx))
+                 (node (cdr ctx)))
+       (pcase type
+         ('attribute
+          (templ-ts-web--expand-select
+           (treesit-node-start node) (treesit-node-end node) "attribute"))
+         ('element-content
+          (let ((ts (treesit-search-subtree node "^tag_start$" nil nil 1))
+                (te (treesit-search-subtree node "^tag_end$" nil nil 1)))
+            (when (and ts te)
+              (templ-ts-web--expand-select
+               (treesit-node-end ts) (treesit-node-start te) "element-content"))))
+         ('element
+          (templ-ts-web--expand-select
+           (treesit-node-start node) (treesit-node-end node) "element")))))))
+
 ;;; Minor mode
 
 (defvar templ-ts-web-mode-map
@@ -640,9 +827,11 @@ on top of a templ tree-sitter major mode."
       (progn
         (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle nil t)
         (add-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash nil t)
+        (add-hook 'deactivate-mark-hook #'templ-ts-web--expand-clear-state nil t)
         (templ-ts-web--install-data-attr-fontification))
     (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-angle t)
     (remove-hook 'post-self-insert-hook #'templ-ts-web--post-close-slash t)
+    (remove-hook 'deactivate-mark-hook #'templ-ts-web--expand-clear-state t)
     (templ-ts-web--remove-data-attr-fontification)))
 
 (provide 'templ-ts-web-mode)
