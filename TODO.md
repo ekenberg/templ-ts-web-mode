@@ -19,6 +19,7 @@
 - [x] Next element (`web-mode-element-next`)
 - [x] Previous element (`web-mode-element-previous`)
 - [x] Element kill (`web-mode-element-kill`)
+- [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
 
 ## Backlog
 
@@ -28,7 +29,6 @@
 ### Element operations
 - [ ] Element close (`web-mode-element-close`)
 - [ ] Element clone (`web-mode-element-clone`)
-- [ ] Element vanish (`web-mode-element-vanish`) — unwrap: remove tags, keep content
 
 ### Editing convenience
 - [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)

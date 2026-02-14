@@ -445,6 +445,26 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-kill)
     (should (string= (ttwt--content) ""))))
 
+;;; Tests: element-vanish (unwrap)
+
+(ert-deftest ttwt-vanish-unwraps ()
+  "Vanish removes tags but keeps content."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-vanish)
+    (should (string= (ttwt--content) "<div>text</div>"))))
+
+(ert-deftest ttwt-vanish-outer ()
+  "Vanish on outer element keeps inner elements."
+  (ttwt--with-templ "<di|v><span>text</span></div>" t
+    (templ-ts-web-element-vanish)
+    (should (string= (ttwt--content) "<span>text</span>"))))
+
+(ert-deftest ttwt-vanish-self-closing ()
+  "Vanish on self-closing tag removes it entirely."
+  (ttwt--with-templ "<div><br| /></div>" t
+    (templ-ts-web-element-vanish)
+    (should (string= (ttwt--content) "<div></div>"))))
+
 ;;; Tests: element-rename
 
 (ert-deftest ttwt-rename-div-to-span ()

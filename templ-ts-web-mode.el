@@ -444,6 +444,52 @@ element rather than the next child."
                         element)))
     (kill-region (treesit-node-start element) (treesit-node-end element))))
 
+;;; Feature: element vanish (unwrap)
+
+(defun templ-ts-web--line-empty-p ()
+  "Return non-nil if the current line contains only whitespace."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at-p "[ \t]*$")))
+
+(defun templ-ts-web--delete-current-line ()
+  "Delete the current line including its newline."
+  (delete-region (line-beginning-position)
+                 (min (1+ (line-end-position)) (point-max))))
+
+(defun templ-ts-web-element-vanish ()
+  "Remove the enclosing element's tags, keeping its content.
+Cleans up empty lines left by tag removal and re-indents the
+remaining content.  For self-closing tags, removes the entire element."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (pcase (treesit-node-type element)
+      ("self_closing_tag"
+       (delete-region (treesit-node-start element) (treesit-node-end element)))
+      ("element"
+       (let* ((tag-start (treesit-search-subtree element "^tag_start$" nil nil 1))
+              (tag-end (treesit-search-subtree element "^tag_end$" nil nil 1)))
+         (when (and tag-start tag-end)
+           (let ((beg (copy-marker (treesit-node-start element)))
+                 (end (copy-marker (treesit-node-end element))))
+             ;; Delete end tag first to preserve start positions.
+             (delete-region (treesit-node-start tag-end) (treesit-node-end tag-end))
+             (delete-region (treesit-node-start tag-start) (treesit-node-end tag-start))
+             ;; Remove empty boundary lines (end first to preserve beg).
+             (save-excursion
+               (goto-char end)
+               (when (templ-ts-web--line-empty-p)
+                 (templ-ts-web--delete-current-line)))
+             (save-excursion
+               (goto-char beg)
+               (when (templ-ts-web--line-empty-p)
+                 (templ-ts-web--delete-current-line)))
+             ;; Re-indent remaining content.
+             (indent-region beg end)
+             (goto-char beg)
+             (set-marker beg nil)
+             (set-marker end nil))))))))
+
 ;;; Feature: data-* attribute fontification
 
 (defun templ-ts-web--install-data-attr-fontification ()
