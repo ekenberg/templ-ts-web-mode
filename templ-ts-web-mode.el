@@ -166,9 +166,11 @@ returns a nearby child rather than the true enclosing element."
                (templ-ts-web--ancestor-of-type node "element" "self_closing_tag"))))
         ;; Gap detection: treesit-node-at finds the nearest node, which
         ;; may be a child element when point is in text between children.
-        (when (and element
-                   (or (< p (treesit-node-start element))
-                       (>= p (treesit-node-end element))))
+        ;; Loop because wrapper nodes (e.g. element around self_closing_tag)
+        ;; can have identical bounds, requiring multiple walk-ups.
+        (while (and element
+                    (or (< p (treesit-node-start element))
+                        (>= p (treesit-node-end element))))
           (setq element (templ-ts-web--ancestor-of-type
                          element "element" "self_closing_tag")))
         element))))
@@ -361,6 +363,36 @@ No-op on self-closing tags."
               (goto-char (treesit-node-start tag-start))
             (goto-char (treesit-node-start tag-end))))))))
 
+(defun templ-ts-web--child-elements (node)
+  "Return direct child nodes of NODE that are elements, in document order.
+Includes both `element' and `self_closing_tag' children."
+  (let ((child (treesit-node-child node 0))
+        result)
+    (while child
+      (when (member (treesit-node-type child) '("element" "self_closing_tag"))
+        (push child result))
+      (setq child (treesit-node-next-sibling child)))
+    (nreverse result)))
+
+(defun templ-ts-web--in-content-gap-p (element)
+  "Return non-nil if point is in a content gap inside ELEMENT.
+Point is in a gap when it lies within ELEMENT's content area
+\(between open and close tags) but not inside any child element.
+Returns nil for self-closing tags (no content area) and when
+point is in the open/close tag itself."
+  (when (equal (treesit-node-type element) "element")
+    (let ((p (point))
+          (tag-start (treesit-search-subtree element "^tag_start$" nil nil 1))
+          (tag-end (treesit-search-subtree element "^tag_end$" nil nil 1)))
+      (when (and tag-start tag-end
+                 (>= p (treesit-node-end tag-start))
+                 (< p (treesit-node-start tag-end)))
+        ;; Point is in the content area.  Check it's not inside a child.
+        (not (seq-find (lambda (c)
+                         (and (>= p (treesit-node-start c))
+                              (< p (treesit-node-end c))))
+                       (templ-ts-web--child-elements element)))))))
+
 (defun templ-ts-web--sibling-reference (element)
   "Return the node to use for sibling navigation from ELEMENT.
 When ELEMENT is a `self_closing_tag' wrapped in an `element',
@@ -373,32 +405,57 @@ correct tree level."
     element))
 
 (defun templ-ts-web-element-next ()
-  "Move point to the beginning of the next sibling HTML element.
-Stays within the same parent — does not cross parent boundaries."
+  "Move point to the next HTML element at the same nesting level.
+When point is in a content gap between child elements, navigates
+among those children.  Otherwise navigates among siblings of the
+enclosing element.  Stays at the current level — never descends."
   (interactive)
-  (when-let* ((element (templ-ts-web--sibling-reference
-                        (templ-ts-web--enclosing-element))))
-    (let ((sibling (treesit-node-next-sibling element)))
-      (while (and sibling
-                  (not (member (treesit-node-type sibling)
-                               '("element" "self_closing_tag"))))
-        (setq sibling (treesit-node-next-sibling sibling)))
-      (when sibling
-        (goto-char (treesit-node-start sibling))))))
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (let ((target
+           (if (templ-ts-web--in-content-gap-p element)
+               ;; Gap case: point is between children of element.
+               ;; Navigate forward among element's children.
+               (seq-find (lambda (c) (> (treesit-node-start c) (point)))
+                         (templ-ts-web--child-elements element))
+             ;; Normal case: navigate to next sibling element.
+             (let* ((ref (templ-ts-web--sibling-reference element))
+                    (sib (treesit-node-next-sibling ref)))
+               (while (and sib
+                           (not (member (treesit-node-type sib)
+                                        '("element" "self_closing_tag"))))
+                 (setq sib (treesit-node-next-sibling sib)))
+               sib))))
+      (if target
+          (goto-char (treesit-node-start target))
+        (message "No next element")))))
 
 (defun templ-ts-web-element-previous ()
-  "Move point to the beginning of the previous sibling HTML element.
-Stays within the same parent — does not cross parent boundaries."
+  "Move point to the previous HTML element at the same nesting level.
+When point is in a content gap between child elements, navigates
+among those children.  Otherwise navigates among siblings of the
+enclosing element.  Stays at the current level — never descends."
   (interactive)
-  (when-let* ((element (templ-ts-web--sibling-reference
-                        (templ-ts-web--enclosing-element))))
-    (let ((sibling (treesit-node-prev-sibling element)))
-      (while (and sibling
-                  (not (member (treesit-node-type sibling)
-                               '("element" "self_closing_tag"))))
-        (setq sibling (treesit-node-prev-sibling sibling)))
-      (when sibling
-        (goto-char (treesit-node-start sibling))))))
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (let ((target
+           (if (templ-ts-web--in-content-gap-p element)
+               ;; Gap case: point is between children of element.
+               ;; Navigate backward among element's children.
+               (let ((prev nil))
+                 (dolist (c (templ-ts-web--child-elements element))
+                   (when (< (treesit-node-start c) (point))
+                     (setq prev c)))
+                 prev)
+             ;; Normal case: navigate to previous sibling element.
+             (let* ((ref (templ-ts-web--sibling-reference element))
+                    (sib (treesit-node-prev-sibling ref)))
+               (while (and sib
+                           (not (member (treesit-node-type sib)
+                                        '("element" "self_closing_tag"))))
+                 (setq sib (treesit-node-prev-sibling sib)))
+               sib))))
+      (if target
+          (goto-char (treesit-node-start target))
+        (message "No previous element")))))
 
 (defun templ-ts-web-element-select ()
   "Select the enclosing HTML element.

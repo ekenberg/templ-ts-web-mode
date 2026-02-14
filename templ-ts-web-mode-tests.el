@@ -296,6 +296,49 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-next)
     (should (= (ttwt--point-in-content) 12))))
 
+(ert-deftest ttwt-next-skips-children ()
+  "Next navigates to sibling, not into children of current element."
+  ;; <div><a|><b>x</b></a><em>y</em></div>
+  ;;                      ^21
+  (ttwt--with-templ "<div><a|><b>x</b></a><em>y</em></div>" t
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 21))))
+
+(ert-deftest ttwt-next-last-sibling-no-descend ()
+  "Next from last sibling with children stays put, does not descend."
+  ;; <div><span>a</span><a><b>x|</b></a></div>
+  ;; Point is inside <b> which is inside <a>, and <a> has no next sibling.
+  ;; Should NOT descend into <a>'s children — should report no next element.
+  (ttwt--with-templ "<div><span>a</span><a><b>x|</b></a></div>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-next)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-next-no-descend-from-content ()
+  "Next from inside element content does not descend into children."
+  ;; Point inside <div>'s open tag area, <div> has children but no sibling.
+  ;; <section><div|><span>x</span></div></section>
+  (ttwt--with-templ "<section><div|><span>x</span></div></section>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-next)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-next-from-text-between-children ()
+  "Next from text between children navigates to the next child."
+  ;; <div><span>a</span>te|xt<em>b</em></div>
+  ;;                         ^24
+  (ttwt--with-templ "<div><span>a</span>te|xt<em>b</em></div>" t
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 24))))
+
+(ert-deftest ttwt-next-from-text-before-children ()
+  "Next from text before first child navigates to the first child."
+  ;; <div>tex|t<span>a</span></div>
+  ;;           ^10
+  (ttwt--with-templ "<div>tex|t<span>a</span></div>" t
+    (templ-ts-web-element-next)
+    (should (= (ttwt--point-in-content) 10))))
+
 ;;; Tests: element-previous
 
 (ert-deftest ttwt-previous-sibling ()
@@ -314,6 +357,39 @@ POINT-MARKER: if non-nil, `|' in content marks point."
 (ert-deftest ttwt-previous-skips-text ()
   "Previous element skips over text nodes between siblings."
   (ttwt--with-templ "<div><span>a</span>text<em>b|</em></div>" t
+    (templ-ts-web-element-previous)
+    (should (= (ttwt--point-in-content) 6))))
+
+(ert-deftest ttwt-previous-first-sibling-no-descend ()
+  "Previous from first sibling with children stays put, does not descend."
+  ;; <div><a><b>x|</b></a><span>y</span></div>
+  ;; Point is inside <b> inside <a>. <a> has no previous sibling.
+  (ttwt--with-templ "<div><a><b>x|</b></a><span>y</span></div>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-previous)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-previous-no-descend-from-content ()
+  "Previous from inside element open tag does not descend into children."
+  ;; <section><div|><span>x</span></div></section>
+  (ttwt--with-templ "<section><div|><span>x</span></div></section>" t
+    (let ((pos (ttwt--point-in-content)))
+      (templ-ts-web-element-previous)
+      (should (= (ttwt--point-in-content) pos)))))
+
+(ert-deftest ttwt-previous-from-text-between-children ()
+  "Previous from text between children navigates to the previous child."
+  ;; <div><span>a</span>te|xt<em>b</em></div>
+  ;;      ^6
+  (ttwt--with-templ "<div><span>a</span>te|xt<em>b</em></div>" t
+    (templ-ts-web-element-previous)
+    (should (= (ttwt--point-in-content) 6))))
+
+(ert-deftest ttwt-previous-from-text-after-children ()
+  "Previous from text after last child navigates to the last child."
+  ;; <div><span>a</span>tex|t</div>
+  ;;      ^6
+  (ttwt--with-templ "<div><span>a</span>tex|t</div>" t
     (templ-ts-web-element-previous)
     (should (= (ttwt--point-in-content) 6))))
 
@@ -442,6 +518,18 @@ POINT-MARKER: if non-nil, `|' in content marks point."
 (ert-deftest ttwt-kill-in-gap-before-child ()
   "Kill in whitespace before child element kills the parent."
   (ttwt--with-templ "<div>|  <span>text</span></div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) ""))))
+
+(ert-deftest ttwt-kill-at-void-start ()
+  "Kill at `<' of void element kills the void, not the parent."
+  (ttwt--with-templ "<div> |<input/> </div>" t
+    (templ-ts-web-element-kill)
+    (should (string= (ttwt--content) "<div>  </div>"))))
+
+(ert-deftest ttwt-kill-after-void-no-space ()
+  "Kill right after void element's `>' kills the parent."
+  (ttwt--with-templ "<div><input/>|</div>" t
     (templ-ts-web-element-kill)
     (should (string= (ttwt--content) ""))))
 

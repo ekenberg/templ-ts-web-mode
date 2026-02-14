@@ -2,8 +2,7 @@
 
 ## Backlog
 
-- [ ] Fix element-kill/clone near void elements — `<div> |<input/> </div>` kills/clones the `<input/>` instead of the enclosing `<div>`. `--enclosing-element` finds the void element rather than the parent when point is adjacent.
-- [ ] Fix element-next/previous getting stuck — at end of last sibling or start of first sibling, the commands silently no-op instead of wrapping or signaling.
+- [~] Fix element-kill/clone near void elements — tentatively done. Root cause was gap detection in `--enclosing-element` using `when` (single pass) instead of `while` (loop). Wrapper `element` nodes around `self_closing_tag` have identical bounds, so one walk-up wasn't enough. Fix: `when` → `while`. User confirmed kill/clone now work correctly. Tests added: `ttwt-kill-at-void-start`, `ttwt-kill-after-void-no-space`. Awaiting final sign-off.
 - [ ] Improve installation instructions — add use-package example, test hook with templ-ts-mode
 
 ### Investigation (resolved — upstream)
@@ -33,8 +32,8 @@
 - [x] Element wrap (`web-mode-element-wrap`) — block-wrap with indent or inline
 - [x] Fontify `data-*` attributes with a distinct face (`templ-ts-web-data-attr-face`)
 - [x] Tag jumping — jump between opening/closing tag (`web-mode-navigate`)
-- [x] Next element (`web-mode-element-next`)
-- [x] Previous element (`web-mode-element-previous`)
+- [x] Next element (`web-mode-element-next`) — fixed: gap-aware navigation stays at current level, never descends into children
+- [x] Previous element (`web-mode-element-previous`) — fixed: gap-aware navigation stays at current level, never descends into children
 - [x] Element kill (`web-mode-element-kill`)
 - [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
 - [x] Select element content (`web-mode-element-content-select`)
