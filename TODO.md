@@ -28,6 +28,9 @@
 ### Element operations
 - [ ] Element close (`web-mode-element-close`)
 
+### Selection
+- [ ] Mark and expand (`web-mode-mark-and-expand`)
+
 ### Editing convenience
 - [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)
 
