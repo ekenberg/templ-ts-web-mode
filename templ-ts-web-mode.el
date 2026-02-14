@@ -490,6 +490,20 @@ remaining content.  For self-closing tags, removes the entire element."
              (set-marker beg nil)
              (set-marker end nil))))))))
 
+;;; Feature: select element content
+
+(defun templ-ts-web-element-content-select ()
+  "Select the content of the enclosing HTML element (between the tags).
+No-op on self-closing tags."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    (when (equal (treesit-node-type element) "element")
+      (let ((tag-start (treesit-search-subtree element "^tag_start$" nil nil 1))
+            (tag-end (treesit-search-subtree element "^tag_end$" nil nil 1)))
+        (when (and tag-start tag-end)
+          (push-mark (treesit-node-start tag-end) nil t)
+          (goto-char (treesit-node-end tag-start)))))))
+
 ;;; Feature: data-* attribute fontification
 
 (defun templ-ts-web--install-data-attr-fontification ()

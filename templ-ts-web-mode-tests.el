@@ -465,6 +465,31 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-vanish)
     (should (string= (ttwt--content) "<div></div>"))))
 
+;;; Tests: element-content-select
+
+(ert-deftest ttwt-content-select ()
+  "Select content between tags."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-content-select)
+    (should (use-region-p))
+    ;; Point at end of <div> = position 6, mark at start of </div> = position 11
+    (should (= (ttwt--point-in-content) 6))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 11))))
+
+(ert-deftest ttwt-content-select-nested ()
+  "Select content of innermost element."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-content-select)
+    (should (use-region-p))
+    (should (= (ttwt--point-in-content) 12))
+    (should (= (- (region-end) (length ttwt--wrapper-prefix)) 16))))
+
+(ert-deftest ttwt-content-select-self-closing-noop ()
+  "Content select on self-closing tag is a no-op."
+  (ttwt--with-templ "<div><br| /></div>" t
+    (templ-ts-web-element-content-select)
+    (should-not (use-region-p))))
+
 ;;; Tests: element-rename
 
 (ert-deftest ttwt-rename-div-to-span ()
