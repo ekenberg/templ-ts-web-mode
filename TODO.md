@@ -21,12 +21,12 @@
 - [x] Element kill (`web-mode-element-kill`)
 - [x] Element vanish (`web-mode-element-vanish`) — unwrap with cleanup and re-indent
 - [x] Select element content (`web-mode-element-content-select`)
+- [x] Element clone (`web-mode-element-clone`)
 
 ## Backlog
 
 ### Element operations
 - [ ] Element close (`web-mode-element-close`)
-- [ ] Element clone (`web-mode-element-clone`)
 
 ### Editing convenience
 - [ ] Attribute auto-quoting (`foo=` → `foo="|"` with point between quotes)

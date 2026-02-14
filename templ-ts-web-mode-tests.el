@@ -490,6 +490,28 @@ POINT-MARKER: if non-nil, `|' in content marks point."
     (templ-ts-web-element-content-select)
     (should-not (use-region-p))))
 
+;;; Tests: element-clone
+
+(ert-deftest ttwt-clone-simple ()
+  "Clone a simple element."
+  (ttwt--with-templ "<div>hel|lo</div>" t
+    (templ-ts-web-element-clone)
+    (should (string= (ttwt--content) "<div>hello</div>\n<div>hello</div>"))
+    (should (= (ttwt--point-in-content) 18))))
+
+(ert-deftest ttwt-clone-self-closing ()
+  "Clone a self-closing tag preserves column."
+  (ttwt--with-templ "<div><br| /></div>" t
+    (templ-ts-web-element-clone)
+    ;; <br /> is at column 5; clone gets same indentation
+    (should (string= (ttwt--content) "<div><br />\n     <br /></div>"))))
+
+(ert-deftest ttwt-clone-nested-inner ()
+  "Clone inner element when point is inside it."
+  (ttwt--with-templ "<div><span>te|xt</span></div>" t
+    (templ-ts-web-element-clone)
+    (should (string= (ttwt--content) "<div><span>text</span>\n     <span>text</span></div>"))))
+
 ;;; Tests: element-rename
 
 (ert-deftest ttwt-rename-div-to-span ()

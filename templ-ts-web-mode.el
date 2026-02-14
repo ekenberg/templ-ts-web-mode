@@ -504,6 +504,28 @@ No-op on self-closing tags."
           (push-mark (treesit-node-start tag-end) nil t)
           (goto-char (treesit-node-end tag-start)))))))
 
+;;; Feature: element clone
+
+(defun templ-ts-web-element-clone ()
+  "Clone the enclosing HTML element, inserting a copy on the next line.
+The clone is placed at the same indentation as the original.
+Point is left at the beginning of the clone."
+  (interactive)
+  (when-let* ((element (templ-ts-web--enclosing-element)))
+    ;; Gap detection: if point is outside the found element, use parent.
+    (when (or (< (point) (treesit-node-start element))
+              (>= (point) (treesit-node-end element)))
+      (setq element (or (templ-ts-web--ancestor-of-type element
+                                                         "element" "self_closing_tag")
+                        element)))
+    (let* ((beg (treesit-node-start element))
+           (end (treesit-node-end element))
+           (text (buffer-substring-no-properties beg end))
+           (col (save-excursion (goto-char beg) (current-column))))
+      (goto-char end)
+      (insert "\n" (make-string col ?\s) text)
+      (goto-char (+ end 1 col)))))
+
 ;;; Feature: data-* attribute fontification
 
 (defun templ-ts-web--install-data-attr-fontification ()
