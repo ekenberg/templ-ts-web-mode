@@ -17,11 +17,12 @@
 ;; Features:
 ;; - Auto-close tags: typing `>' after `<div' inserts `</div>'
 ;; - Auto-complete closing tags: typing `</' completes the tag name
+;; - Auto-quote attributes: typing `=' inserts `=""' with point between
 ;; - Smart Enter: RET between `<div>|</div>' opens a new indented line
-;; - Element navigation: jump to beginning/end of enclosing element
-;; - Element select: mark enclosing element, expand on repeat
-;; - Element rename: change tag name in both open and close tags
-;; - Element wrap: wrap region or enclosing element with a new tag
+;; - Element navigation: beginning, end, next/previous sibling, tag jump
+;; - Element selection: select element, content, or mark-and-expand
+;; - Element operations: rename, wrap, clone, kill, vanish (unwrap), close
+;; - data-* attribute fontification
 
 ;;; Code:
 
@@ -33,13 +34,6 @@
   "Web-editing conveniences for templ buffers."
   :group 'languages
   :prefix "templ-ts-web-")
-
-;;; Constants
-
-(defconst templ-ts-web--void-elements
-  '("area" "base" "br" "col" "embed" "hr" "img" "input"
-    "link" "meta" "source" "track" "wbr")
-  "HTML void elements that must not have a closing tag.")
 
 (defface templ-ts-web-data-attr-face
   '((t :inherit font-lock-builtin-face))
@@ -86,6 +80,13 @@ Disable if using `smartparens-mode' or `electric-pair-mode',
 which provide their own quote pairing."
   :type 'boolean
   :group 'templ-ts-web)
+
+;;; Internal variables
+
+(defconst templ-ts-web--void-elements
+  '("area" "base" "br" "col" "embed" "hr" "img" "input"
+    "link" "meta" "source" "track" "wbr")
+  "HTML void elements that must not have a closing tag.")
 
 (defvar templ-ts-web--tag-history nil
   "History list for tag name prompts.")
@@ -365,11 +366,10 @@ No-op on self-closing tags."
 When ELEMENT is a `self_closing_tag' wrapped in an `element',
 returns the wrapper so that sibling traversal operates at the
 correct tree level."
-  (if (and (equal (treesit-node-type element) "self_closing_tag")
-           (let ((parent (treesit-node-parent element)))
-             (and parent (equal (treesit-node-type parent) "element")
-                  parent)))
-      (treesit-node-parent element)
+  (if-let* ((parent (and (equal (treesit-node-type element) "self_closing_tag")
+                         (treesit-node-parent element)))
+             (_ (equal (treesit-node-type parent) "element")))
+      parent
     element))
 
 (defun templ-ts-web-element-next ()
@@ -484,15 +484,6 @@ between child elements (e.g. leading whitespace), kills the parent
 element rather than the next child."
   (interactive)
   (when-let* ((element (templ-ts-web--enclosing-element)))
-    ;; treesit-node-at returns the nearest node at-or-after point.
-    ;; When point is in a gap between children (whitespace before or
-    ;; after an element), it finds the nearest child — but point
-    ;; isn't actually inside it.  Go to parent.
-    (when (or (< (point) (treesit-node-start element))
-              (>= (point) (treesit-node-end element)))
-      (setq element (or (templ-ts-web--ancestor-of-type element
-                                                         "element" "self_closing_tag")
-                        element)))
     (kill-region (treesit-node-start element) (treesit-node-end element))))
 
 ;;; Feature: element vanish (unwrap)
@@ -621,12 +612,6 @@ The clone is placed at the same indentation as the original.
 Point is left at the beginning of the clone."
   (interactive)
   (when-let* ((element (templ-ts-web--enclosing-element)))
-    ;; Gap detection: if point is outside the found element, use parent.
-    (when (or (< (point) (treesit-node-start element))
-              (>= (point) (treesit-node-end element)))
-      (setq element (or (templ-ts-web--ancestor-of-type element
-                                                         "element" "self_closing_tag")
-                        element)))
     (let* ((beg (treesit-node-start element))
            (end (treesit-node-end element))
            (text (buffer-substring-no-properties beg end))
@@ -716,8 +701,8 @@ tree-sitter node."
                       (setq found (cons 'element-content cur))
                     (setq found (cons 'element cur)))))
                ((equal type "component_block")
-                ;; Don't go above component_block — use nearest element.
-                (setq found nil cur nil))))
+                ;; Don't go above component_block — stop here.
+                (setq cur nil))))
             (unless found
               (setq cur (treesit-node-parent cur)))))
         ;; Fallback: try enclosing element.
@@ -876,8 +861,9 @@ Use \\[keyboard-quit] to deactivate the mark and reset."
 (define-minor-mode templ-ts-web-mode
   "Web-editing conveniences for templ buffers.
 
-Adds auto-close tags, closing tag completion, and smart Enter
-on top of a templ tree-sitter major mode."
+Adds web-mode-style HTML editing: auto-close/complete tags, attribute
+auto-quoting, smart Enter, element operations (navigate, select, rename,
+wrap, clone, kill, vanish), mark-and-expand, and data-* fontification."
   :lighter " tw"
   :keymap templ-ts-web-mode-map
   (if templ-ts-web-mode
