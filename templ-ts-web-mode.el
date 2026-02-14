@@ -68,7 +68,19 @@ Used by `templ-ts-web-element-rename' and other tag-prompting commands."
   :type '(repeat string)
   :group 'templ-ts-web)
 
-(defcustom templ-ts-web-auto-quote t
+(defcustom templ-ts-web-element-auto-close t
+  "Auto-close tags when typing `>'.
+When non-nil, typing `>' after `<div' inserts `</div>'."
+  :type 'boolean
+  :group 'templ-ts-web)
+
+(defcustom templ-ts-web-element-auto-complete t
+  "Auto-complete closing tags when typing `</'.
+When non-nil, typing `/' after `<' inserts the matching tag name and `>'."
+  :type 'boolean
+  :group 'templ-ts-web)
+
+(defcustom templ-ts-web-attr-auto-quote t
   "Insert double quotes after `=' in HTML attributes.
 Disable if using `smartparens-mode' or `electric-pair-mode',
 which provide their own quote pairing."
@@ -215,7 +227,8 @@ which is unreliable during mid-edit parse states."
 
 (defun templ-ts-web--post-close-angle ()
   "After `>' is inserted, auto-close the tag if appropriate."
-  (when (and (eq last-command-event ?>)
+  (when (and templ-ts-web-element-auto-close
+             (eq last-command-event ?>)
              (templ-ts-web--in-templ-p)
              ;; Not self-closing: char before `>' isn't `/'
              (not (eq (char-before (1- (point))) ?/)))
@@ -241,7 +254,7 @@ which is unreliable during mid-edit parse states."
 (defun templ-ts-web--post-equals ()
   "After `=' is inserted, auto-quote if inside an HTML tag attribute.
 Inserts double quotes and positions point between them: attr=\"|\"."
-  (when (and templ-ts-web-auto-quote
+  (when (and templ-ts-web-attr-auto-quote
              (eq last-command-event ?=)
              (>= (point) 3)
              (templ-ts-web--in-templ-p)
@@ -259,7 +272,8 @@ Inserts double quotes and positions point between them: attr=\"|\"."
 
 (defun templ-ts-web--post-close-slash ()
   "After `/' is inserted following `<', auto-complete the closing tag."
-  (when (and (eq last-command-event ?/)
+  (when (and templ-ts-web-element-auto-complete
+             (eq last-command-event ?/)
              (>= (point) 3)
              (eq (char-before (1- (point))) ?<)
              (templ-ts-web--in-templ-p))

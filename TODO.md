@@ -24,18 +24,22 @@
 - [x] Element clone (`web-mode-element-clone`)
 - [x] Element close (`web-mode-element-close`) — context-aware with partial name completion
 - [x] Mark-and-expand — progressive structural selection (attribute → element → parent content → parent → ceiling)
-- [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-auto-quote`
+- [x] Attribute auto-quoting (`foo=` → `foo="|"`) — toggleable via `templ-ts-web-attr-auto-quote`
 - [x] Keybindings with web-mode-compatible defaults (`C-c C-e` prefix, `C-c C-m` for mark-and-expand)
+- [x] Configuration via `defcustom` — `templ-ts-web-element-auto-close`, `templ-ts-web-element-auto-complete`, `templ-ts-web-attr-auto-quote`
 
 ## Backlog
 
-### Cross-cutting
-- [ ] Configuration via `defcustom` where it makes sense (e.g. auto-pairing, auto-quoting)
+- [ ] GitHub publish — create remote repo, README, LICENSE, .gitignore cleanup, package headers
 
-### Investigation
-- [ ] CSS blocks in templ — formatting is broken and no fontification; investigate parsing and add support
-- [ ] Investigate script tags in templ — how they parse, how JS looks/behaves inside templ context
-- [ ] Indentation: uses tabs instead of spaces — investigate and fix
+### Investigation (resolved — upstream)
+- Investigated: CSS blocks — `css_declaration` closing `}` misindented, no CSS fontification beyond property names. All upstream in templ-ts-mode.
+- Investigated: `<script>` HTML elements — JS parser ranges miss `script_element_text` nodes. Upstream in templ-ts-mode.
+- Investigated: `<style>` HTML elements — `style_element_text` is opaque, no embedded CSS parser. Upstream in templ-ts-mode.
+- Investigated: Indentation hardcodes `indent-tabs-mode t` — should be user's choice, not forced. Upstream in templ-ts-mode.
 
-### Doubtful
-- [ ] Element insert (`web-mode-element-insert`) — probably not; overlaps with auto-close + wrap
+### Upstream (templ-ts-mode PRs)
+- [ ] Fix css_declaration closing brace indentation — needs a rule like `((node-is "}") (parent-is "css_declaration") parent-bol 0)` added to `templ-ts--indent-rules` in templ-ts-mode.el (currently only has `((parent-is "css_declaration") parent-bol go-ts-mode-indent-offset)` which indents the brace like a property)
+- [ ] Fix `<script>` HTML element JS support — `templ-ts--treesit-update-ranges` only queries `(script_block_text)` (templ-native `script funcName() { }` blocks, which work) but not `(script_element_text)` (HTML `<script>` tags, which get no JS parsing/fontification/indentation)
+- [ ] Embed CSS parser for `<style>` elements — `style_element_text` is opaque text, needs `treesit-range-rules` with `:embed 'css` like the JS setup does for `script_block_text`
+- [ ] Don't hardcode `indent-tabs-mode t` — should respect user preference, not force tabs
